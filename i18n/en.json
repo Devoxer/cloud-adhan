@@ -1,0 +1,122 @@
+{
+  "prayer": {
+    "fajr": "Fajr",
+    "sunrise": "Sunrise",
+    "dhuhr": "Dhuhr",
+    "asr": "Asr",
+    "maghrib": "Maghrib",
+    "isha": "Isha"
+  },
+  "tab": {
+    "home": "Home",
+    "qibla": "Qibla",
+    "settings": "Settings"
+  },
+  "screen": {
+    "home": "Prayer Times",
+    "qibla": "Qibla Compass",
+    "settings": "Settings",
+    "notFound": "Not Found"
+  },
+  "settings": {
+    "prayer": "Prayer",
+    "calculationMethod": "Calculation Method",
+    "madhab": "Madhab",
+    "madhabHanafi": "Hanafi",
+    "madhabShafi": "Shafi'i",
+    "notifications": "Notifications",
+    "athanSound": "Athan Sound",
+    "fajrSound": "Fajr Sound",
+    "location": "Location",
+    "useGps": "Use GPS",
+    "manualCity": "Select City",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "language": "Language",
+    "languageEn": "English",
+    "languageAr": "العربية",
+    "arabicNumerals": "Arabic-Indic Numerals",
+    "about": "About",
+    "version": "Version",
+    "openSource": "Open Source (GPL-3.0)",
+    "privacy": "Zero data collected",
+    "batteryGuide": "Battery Optimization Guide",
+    "batteryGuideTitle": "{{manufacturer}} Battery Guide",
+    "batteryGuideGeneric": "Battery Optimization Guide",
+    "learnMore": "Learn More",
+    "athanMakkah": "Makkah",
+    "athanMadinah": "Madinah",
+    "athanAlaqsa": "Al-Aqsa",
+    "athanMishary": "Mishary Rashid",
+    "fajrMakkah": "Makkah (Fajr)",
+    "fajrMishary": "Mishary Rashid (Fajr)",
+    "recommendedForRegion": "Recommended for your region",
+    "madhabHanafiDesc": "Later Asr time — shadow equals twice an object's length",
+    "madhabShafiDesc": "Standard Asr time — shadow equals an object's length",
+    "searchCities": "Search cities...",
+    "citySelected": "{{city}} selected",
+    "noCitiesFound": "No cities found",
+    "previewSound": "Preview {{name}}",
+    "stopPreview": "Stop preview"
+  },
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "enable": "Enable",
+    "disable": "Disable",
+    "restartRequired": "App restart required to apply changes",
+    "prayerTimeIn": "{{prayer}} in",
+    "currentPrayer": "{{prayer}} time"
+  },
+  "error": {
+    "generic": "Something went wrong",
+    "notFound": "This screen doesn't exist.",
+    "goHome": "Go to home screen"
+  },
+  "countdown": {
+    "accessibility": "{{prayer}} in {{hours}} hours {{minutes}} minutes"
+  },
+  "timeline": {
+    "passed": "passed",
+    "current": "current prayer",
+    "next": "next prayer",
+    "upcoming": "upcoming",
+    "accessibility": "{{prayer}} at {{time}}, {{status}}"
+  },
+  "permission": {
+    "locationTitle": "Location Permission",
+    "locationMessage": "Used to calculate prayer times for your location. Your coordinates never leave your device.",
+    "notificationTitle": "Notification Permission",
+    "notificationMessage": "Enable notifications to never miss a prayer.",
+    "enableNotifications": "Enable Notifications",
+    "setLocationManually": "Set location manually"
+  },
+  "home": {
+    "today": "Today",
+    "setManually": "Set Location Manually",
+    "tryAgain": "Try Again",
+    "openSettings": "Open Settings",
+    "enableLocationInBrowser": "Please enable location in your browser settings",
+    "locationDenied": "Location access is needed for accurate prayer times"
+  },
+  "qibla": {
+    "needsCalibration": "Move your phone in a figure-8 to calibrate the compass",
+    "facingQibla": "You are facing the Qibla",
+    "bearingDegrees": "{{degrees}}° from North",
+    "bearing": "Qibla bearing: {{degrees}}°",
+    "noLocation": "Set your location to see Qibla direction",
+    "staticFallback": "Compass not available on this device",
+    "compassAccessibility": "Qibla is {{degrees}} degrees from north. Rotate your device to find Qibla direction."
+  },
+  "date": {
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "goToToday": "Go to today",
+    "dateFormat": "dddd, MMMM D"
+  }
+}

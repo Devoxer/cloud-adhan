@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
+---
+
+<BaseLayout title="Contribute — Cloud Athan" description="Help Muslims worldwide use Cloud Athan in their language. Contribute code, translations, or feedback.">
+  <Header />
+
+  <main>
+    <h1>Contribute</h1>
+    <p class="intro">
+      Cloud Athan is a community project built for the sake of Allah.
+      Every contribution is <strong>sadaqah jariyah</strong> — ongoing charity.
+    </p>
+
+    <section>
+      <h2>Translate</h2>
+      <p>
+        Help Muslims use Cloud Athan in their native language. Translations are
+        managed through <a href="https://hosted.weblate.org/engage/cloud-athan/" target="_blank" rel="noopener noreferrer">Weblate</a>
+        — no development setup needed.
+      </p>
+      <ol>
+        <li>Visit <a href="https://hosted.weblate.org/engage/cloud-athan/" target="_blank" rel="noopener noreferrer">Cloud Athan on Weblate</a></li>
+        <li>Pick your language or request a new one</li>
+        <li>Translate strings through the web interface</li>
+        <li>Your translations are automatically submitted for review</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Code</h2>
+      <p>
+        Cloud Athan is built with Expo, React Native, and TypeScript.
+        See the <a href="https://github.com/Devoxer/cloud-athan/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing Guide</a>
+        for setup instructions, code style, and PR guidelines.
+      </p>
+      <a href="https://github.com/Devoxer/cloud-athan" target="_blank" rel="noopener noreferrer" class="btn">View on GitHub</a>
+    </section>
+
+    <section>
+      <h2>Report bugs</h2>
+      <p>
+        Found an issue? Open a
+        <a href="https://github.com/Devoxer/cloud-athan/issues" target="_blank" rel="noopener noreferrer">GitHub Issue</a>
+        with steps to reproduce, expected vs actual behavior, and your device/OS
+        version.
+      </p>
+    </section>
+
+    <section>
+      <h2>Suggest features</h2>
+      <p>
+        Have an idea that would benefit the community? Open a
+        <a href="https://github.com/Devoxer/cloud-athan/issues" target="_blank" rel="noopener noreferrer">GitHub Issue</a>
+        with a description of the use case and why it matters.
+      </p>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+  }
+
+  .intro {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 3rem;
+    line-height: 1.7;
+  }
+
+  section {
+    margin-bottom: 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    color: var(--color-accent);
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    color: var(--color-text-muted);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  ol li {
+    color: var(--color-text-muted);
+    padding: 0.3rem 0;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: var(--color-accent);
+    color: var(--color-bg);
+    transition: background 0.2s;
+  }
+
+  .btn:hover {
+    background: var(--color-accent-hover);
+    color: var(--color-bg);
+  }
+</style>

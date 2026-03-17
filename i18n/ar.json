@@ -1,0 +1,122 @@
+{
+  "prayer": {
+    "fajr": "الفجر",
+    "sunrise": "الشروق",
+    "dhuhr": "الظهر",
+    "asr": "العصر",
+    "maghrib": "المغرب",
+    "isha": "العشاء"
+  },
+  "tab": {
+    "home": "الرئيسية",
+    "qibla": "القبلة",
+    "settings": "الإعدادات"
+  },
+  "screen": {
+    "home": "مواقيت الصلاة",
+    "qibla": "بوصلة القبلة",
+    "settings": "الإعدادات",
+    "notFound": "غير موجود"
+  },
+  "settings": {
+    "prayer": "الصلاة",
+    "calculationMethod": "طريقة الحساب",
+    "madhab": "المذهب",
+    "madhabHanafi": "حنفي",
+    "madhabShafi": "شافعي",
+    "notifications": "الإشعارات",
+    "athanSound": "صوت الأذان",
+    "fajrSound": "صوت أذان الفجر",
+    "location": "الموقع",
+    "useGps": "استخدام GPS",
+    "manualCity": "اختيار المدينة",
+    "appearance": "المظهر",
+    "theme": "السمة",
+    "themeDark": "داكن",
+    "themeLight": "فاتح",
+    "themeSystem": "النظام",
+    "language": "اللغة",
+    "languageEn": "English",
+    "languageAr": "العربية",
+    "arabicNumerals": "الأرقام العربية",
+    "about": "حول",
+    "version": "الإصدار",
+    "openSource": "مفتوح المصدر (GPL-3.0)",
+    "privacy": "لا يتم جمع أي بيانات",
+    "batteryGuide": "دليل تحسين البطارية",
+    "batteryGuideTitle": "دليل بطارية {{manufacturer}}",
+    "batteryGuideGeneric": "دليل تحسين البطارية",
+    "learnMore": "اعرف المزيد",
+    "athanMakkah": "مكة المكرمة",
+    "athanMadinah": "المدينة المنورة",
+    "athanAlaqsa": "المسجد الأقصى",
+    "athanMishary": "مشاري راشد",
+    "fajrMakkah": "مكة المكرمة (الفجر)",
+    "fajrMishary": "مشاري راشد (الفجر)",
+    "recommendedForRegion": "الموصى بها لمنطقتك",
+    "madhabHanafiDesc": "وقت عصر متأخر — ظل الشيء يساوي ضعف طوله",
+    "madhabShafiDesc": "وقت عصر قياسي — ظل الشيء يساوي طوله",
+    "searchCities": "ابحث عن مدينة...",
+    "citySelected": "تم اختيار {{city}}",
+    "noCitiesFound": "لم يتم العثور على مدن",
+    "previewSound": "معاينة {{name}}",
+    "stopPreview": "إيقاف المعاينة"
+  },
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "retry": "إعادة المحاولة",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "enable": "تفعيل",
+    "disable": "تعطيل",
+    "restartRequired": "يجب إعادة تشغيل التطبيق لتطبيق التغييرات",
+    "prayerTimeIn": "{{prayer}} بعد",
+    "currentPrayer": "وقت {{prayer}}"
+  },
+  "error": {
+    "generic": "حدث خطأ ما",
+    "notFound": "هذه الشاشة غير موجودة.",
+    "goHome": "الذهاب إلى الشاشة الرئيسية"
+  },
+  "countdown": {
+    "accessibility": "{{prayer}} بعد {{hours}} ساعة و {{minutes}} دقيقة"
+  },
+  "timeline": {
+    "passed": "انتهى",
+    "current": "الصلاة الحالية",
+    "next": "الصلاة القادمة",
+    "upcoming": "قادم",
+    "accessibility": "{{prayer}} في {{time}}، {{status}}"
+  },
+  "permission": {
+    "locationTitle": "إذن الموقع",
+    "locationMessage": "يُستخدم لحساب مواقيت الصلاة لموقعك. إحداثياتك لا تغادر جهازك أبداً.",
+    "notificationTitle": "إذن الإشعارات",
+    "notificationMessage": "فعّل الإشعارات حتى لا تفوتك أي صلاة.",
+    "enableNotifications": "تفعيل الإشعارات",
+    "setLocationManually": "تحديد الموقع يدوياً"
+  },
+  "home": {
+    "today": "اليوم",
+    "setManually": "تحديد الموقع يدوياً",
+    "tryAgain": "حاول مرة أخرى",
+    "openSettings": "فتح الإعدادات",
+    "enableLocationInBrowser": "يرجى تفعيل الموقع في إعدادات المتصفح",
+    "locationDenied": "يحتاج التطبيق إلى إذن الموقع لحساب مواقيت الصلاة بدقة"
+  },
+  "qibla": {
+    "needsCalibration": "حرّك هاتفك على شكل رقم 8 لمعايرة البوصلة",
+    "facingQibla": "أنت تواجه القبلة",
+    "bearingDegrees": "{{degrees}}° من الشمال",
+    "bearing": "اتجاه القبلة: {{degrees}}°",
+    "noLocation": "حدد موقعك لمعرفة اتجاه القبلة",
+    "staticFallback": "البوصلة غير متاحة على هذا الجهاز",
+    "compassAccessibility": "القبلة على بُعد {{degrees}} درجة من الشمال. أدر جهازك للعثور على اتجاه القبلة."
+  },
+  "date": {
+    "previousDay": "اليوم السابق",
+    "nextDay": "اليوم التالي",
+    "goToToday": "العودة لليوم",
+    "dateFormat": "dddd، D MMMM"
+  }
+}

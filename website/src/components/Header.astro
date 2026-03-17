@@ -1,0 +1,70 @@
+---
+const navItems = [
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Contribute', href: '/contribute' },
+  { label: 'GitHub', href: 'https://github.com/Devoxer/cloud-athan', external: true },
+]
+---
+
+<header>
+  <nav>
+    <a href="/" class="logo">Cloud Athan</a>
+    <ul>
+      {navItems.map((item) => (
+        <li>
+          <a href={item.href} {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</header>
+
+<style>
+  header {
+    border-bottom: 1px solid var(--color-surface);
+  }
+
+  nav {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  ul {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  li a {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
+  li a:hover {
+    color: var(--color-text);
+  }
+
+  @media (max-width: 480px) {
+    nav {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    ul {
+      gap: 1rem;
+    }
+  }
+</style>

@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
+---
+
+<BaseLayout title="Privacy — Cloud Athan" description="Cloud Athan collects zero data. No analytics, no ads, no accounts, no telemetry. Your location never leaves your device.">
+  <Header />
+
+  <main>
+    <h1>Privacy</h1>
+
+    <section>
+      <h2>Zero data collection</h2>
+      <p>
+        Cloud Athan does not collect, store, or transmit any personal data.
+        There are no analytics, no ads, no user accounts, and no telemetry.
+      </p>
+    </section>
+
+    <section>
+      <h2>Location stays on your device</h2>
+      <p>
+        Your GPS coordinates are used only to calculate prayer times and Qibla
+        direction. They are processed entirely on-device and are never sent to
+        any server. Location data is cached locally using encrypted storage
+        (MMKV) so the app works offline.
+      </p>
+    </section>
+
+    <section>
+      <h2>No network requests for core functionality</h2>
+      <p>
+        Prayer times are calculated locally using the
+        <a href="https://github.com/batoulapps/adhan-js" target="_blank" rel="noopener noreferrer">adhan.js</a>
+        astronomical library. No API calls, no servers, no cloud dependencies.
+        The app works fully offline after initial location detection.
+      </p>
+    </section>
+
+    <section>
+      <h2>Open source — audit the code</h2>
+      <p>
+        Cloud Athan is licensed under
+        <a href="https://github.com/Devoxer/cloud-athan/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GPL-3.0</a>.
+        The entire source code is available on
+        <a href="https://github.com/Devoxer/cloud-athan" target="_blank" rel="noopener noreferrer">GitHub</a>.
+        You can verify every claim on this page by reading the code yourself.
+      </p>
+    </section>
+
+    <section>
+      <h2>No third-party tracking</h2>
+      <ul>
+        <li>No Google Analytics or any analytics service</li>
+        <li>No Facebook SDK or social tracking</li>
+        <li>No advertising networks</li>
+        <li>Crash reports (via Sentry) contain only technical stack traces — no personal data, no location, no usage patterns</li>
+        <li>No cookies on this website</li>
+      </ul>
+    </section>
+
+    <section>
+      <p class="summary">
+        The code <em>is</em> the privacy policy.
+      </p>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 2rem;
+  }
+
+  section {
+    margin-bottom: 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    color: var(--color-accent);
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    color: var(--color-text-muted);
+    line-height: 1.7;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  ul li {
+    color: var(--color-text-muted);
+    padding: 0.4rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+  }
+
+  ul li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--color-teal);
+  }
+
+  .summary {
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--color-accent);
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-surface);
+  }
+</style>

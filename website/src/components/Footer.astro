@@ -1,0 +1,58 @@
+---
+const year = new Date().getFullYear()
+---
+
+<footer>
+  <div class="container">
+    <div class="links">
+      <a href="https://github.com/Devoxer/cloud-athan/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GPL-3.0 License</a>
+      <a href="https://github.com/Devoxer/cloud-athan" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://hosted.weblate.org/engage/cloud-athan/" target="_blank" rel="noopener noreferrer">Translate</a>
+      <a href="/privacy">Privacy</a>
+    </div>
+    <p class="tagline">Built as sadaqah jariyah</p>
+    <p class="copyright">&copy; {year} Cloud Athan contributors</p>
+  </div>
+</footer>
+
+<style>
+  footer {
+    border-top: 1px solid var(--color-surface);
+    padding: 2rem 1.5rem;
+    margin-top: 4rem;
+    text-align: center;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .links a {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  .links a:hover {
+    color: var(--color-text);
+  }
+
+  .tagline {
+    color: var(--color-accent);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .copyright {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+  }
+</style>

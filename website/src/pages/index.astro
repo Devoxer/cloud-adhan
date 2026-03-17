@@ -1,0 +1,212 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
+import FeatureCard from '../components/FeatureCard.astro'
+import DownloadBadges from '../components/DownloadBadges.astro'
+
+const features = [
+  {
+    icon: '🕌',
+    title: 'Accurate Prayer Times',
+    description: 'Astronomical calculations powered by adhan.js. Supports all major calculation methods worldwide.',
+  },
+  {
+    icon: '⏱️',
+    title: 'Countdown Timer',
+    description: 'Always know how long until the next prayer with a beautiful, glanceable countdown.',
+  },
+  {
+    icon: '🔇',
+    title: 'Zero Tracking',
+    description: 'Your location never leaves your device. No analytics, no ads, no accounts, no telemetry.',
+  },
+  {
+    icon: '📡',
+    title: 'Offline-First',
+    description: 'Works without internet after initial setup. Prayer times are calculated locally on your device.',
+  },
+  {
+    icon: '🧭',
+    title: 'Qibla Compass',
+    description: 'Find the direction of the Kaaba with haptic feedback when aligned.',
+  },
+  {
+    icon: '🌍',
+    title: 'Multi-Platform',
+    description: 'Available on iOS, Android, and the web. One app, every device.',
+  },
+]
+---
+
+<BaseLayout title="Cloud Athan — Prayer times, done right">
+  <Header />
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Prayer times, done right.</h1>
+        <p class="subtitle">Open source. Zero tracking. Built as sadaqah jariyah.</p>
+        <DownloadBadges />
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="container">
+        <h2>Why Cloud Athan?</h2>
+        <div class="grid">
+          {features.map((f) => (
+            <FeatureCard icon={f.icon} title={f.title} description={f.description} />
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy">
+      <div class="container">
+        <h2>Your privacy is non-negotiable</h2>
+        <p>
+          Zero data collected. No analytics. No ads. No accounts. No telemetry.
+          <br />
+          Open source under <a href="https://github.com/Devoxer/cloud-athan/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GPL-3.0</a>. Audit the code yourself.
+        </p>
+        <a href="/privacy" class="cta-link">Learn more about our privacy commitment &rarr;</a>
+      </div>
+    </section>
+
+    <section class="contribute">
+      <div class="container">
+        <h2>Help Muslims worldwide</h2>
+        <p>
+          Cloud Athan is a community project. Contribute code, translations, or feedback.
+        </p>
+        <div class="cta-buttons">
+          <a href="https://github.com/Devoxer/cloud-athan" target="_blank" rel="noopener noreferrer" class="btn">GitHub</a>
+          <a href="https://hosted.weblate.org/engage/cloud-athan/" target="_blank" rel="noopener noreferrer" class="btn btn-outline">Translate</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  main {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  section {
+    padding: 4rem 0;
+  }
+
+  .hero {
+    text-align: center;
+    padding: 6rem 0 4rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2.5rem;
+  }
+
+  .features {
+    text-align: center;
+  }
+
+  .features h2 {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+    color: var(--color-accent);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .privacy {
+    text-align: center;
+    background: var(--color-surface);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+  }
+
+  .privacy h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .privacy p {
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+  }
+
+  .cta-link {
+    font-size: 0.95rem;
+  }
+
+  .contribute {
+    text-align: center;
+  }
+
+  .contribute h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    color: var(--color-accent);
+  }
+
+  .contribute p {
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    margin-bottom: 2rem;
+  }
+
+  .cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: var(--color-accent);
+    color: var(--color-bg);
+    transition: background 0.2s;
+  }
+
+  .btn:hover {
+    background: var(--color-accent-hover);
+    color: var(--color-bg);
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .btn-outline:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+</style>
