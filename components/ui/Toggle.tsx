@@ -1,13 +1,6 @@
 import * as Haptics from 'expo-haptics'
 import { useEffect, useRef, useState } from 'react'
-import {
-  AccessibilityInfo,
-  Animated,
-  I18nManager,
-  Pressable,
-  StyleSheet,
-  type ViewProps,
-} from 'react-native'
+import { AccessibilityInfo, Animated, Pressable, StyleSheet, type ViewProps } from 'react-native'
 
 import { useTheme } from '@/hooks/useTheme'
 
@@ -57,7 +50,7 @@ export function Toggle({
 
   const translateX = thumbPosition.interpolate({
     inputRange: [0, 1],
-    outputRange: I18nManager.isRTL ? [THUMB_TRAVEL, 0] : [0, THUMB_TRAVEL],
+    outputRange: [0, THUMB_TRAVEL],
   })
 
   const trackColor = thumbPosition.interpolate({

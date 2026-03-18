@@ -86,10 +86,4 @@ export const CALCULATION_METHODS: Record<CalculationMethod, CalculationMethodInf
     description: 'Fajr 19°, Isha 17° — used in Morocco',
     regions: ['Morocco'],
   },
-  Other: {
-    key: 'Other',
-    displayName: 'Custom',
-    description: 'Custom calculation parameters — for manual angle configuration',
-    regions: ['Global'],
-  },
 }

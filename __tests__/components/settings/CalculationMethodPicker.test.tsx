@@ -82,11 +82,11 @@ describe('components/settings/CalculationMethodPicker', () => {
     mockGetRecommendedMethod.mockReturnValue('Morocco')
   })
 
-  it('renders all 14 calculation methods', () => {
+  it('renders all 13 calculation methods', () => {
     render(<CalculationMethodPicker />)
 
     const radios = screen.getAllByRole('radio')
-    expect(radios).toHaveLength(14)
+    expect(radios).toHaveLength(13)
   })
 
   it('displays method names and descriptions', () => {

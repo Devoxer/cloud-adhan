@@ -13,6 +13,7 @@ import {
   type Coordinates,
   type Madhab,
   Prayer,
+  type PrayerAdjustments,
   type PrayerTimeInfo,
   type PrayerTimes,
 } from '@/types/prayer'
@@ -38,7 +39,6 @@ export const METHOD_MAP: Record<CalculationMethod, () => CalculationParameters> 
     params.methodAdjustments.maghrib = 5
     return params
   },
-  Other: AdhanCalculationMethod.Other,
 }
 
 export const MADHAB_MAP: Record<Madhab, (typeof AdhanMadhab)[keyof typeof AdhanMadhab]> = {
@@ -60,10 +60,19 @@ export function calculatePrayerTimes(
   date: Date,
   method: CalculationMethod,
   madhab: Madhab,
+  prayerAdjustments?: PrayerAdjustments,
 ): PrayerTimes {
   const adhanCoords = new AdhanCoordinates(coordinates.latitude, coordinates.longitude)
   const params = METHOD_MAP[method]()
   params.madhab = MADHAB_MAP[madhab]
+  if (prayerAdjustments) {
+    params.adjustments.fajr = prayerAdjustments.fajr
+    params.adjustments.sunrise = prayerAdjustments.sunrise
+    params.adjustments.dhuhr = prayerAdjustments.dhuhr
+    params.adjustments.asr = prayerAdjustments.asr
+    params.adjustments.maghrib = prayerAdjustments.maghrib
+    params.adjustments.isha = prayerAdjustments.isha
+  }
   const adhanTimes = new AdhanPrayerTimes(adhanCoords, date, params)
 
   return {
@@ -100,12 +109,19 @@ export function buildDayPrayerTimes(
   calculationMethod: CalculationMethod,
   madhab: Madhab,
   days: number,
+  prayerAdjustments?: PrayerAdjustments,
 ): DayPrayerTimes[] {
   const result: DayPrayerTimes[] = []
   const today = new Date()
   for (let i = 0; i < days; i++) {
     const date = dayjs(today).add(i, 'day').toDate()
-    const times = calculatePrayerTimes(coordinates, date, calculationMethod, madhab)
+    const times = calculatePrayerTimes(
+      coordinates,
+      date,
+      calculationMethod,
+      madhab,
+      prayerAdjustments,
+    )
     result.push({ date, times })
   }
   return result

@@ -14,7 +14,6 @@ import { type NotifiablePrayer, Prayer } from '@/types/prayer'
 import { formatTime } from '@/utils/format'
 
 const MAX_IOS_NOTIFICATIONS = 64
-const SCHEDULE_DAYS = 13
 
 const NOTIFIABLE_PRAYERS: NotifiablePrayer[] = [
   Prayer.Fajr,
@@ -28,13 +27,31 @@ function getPrayerNotificationContent(
   prayer: NotifiablePrayer,
   time: Date,
   config: NotificationConfig,
-): { title: string; body: string; sound: string } {
+): { title: string; body: string; sound: string | false } {
   const title = i18n.t(`prayer.${prayer}`)
   const body = formatTime(time)
-  const soundId = prayer === Prayer.Fajr ? config.fajrSound : config.athanSound
+  const soundId = config.prayerSounds[prayer]
   const soundMeta = getSoundById(soundId)
-  const sound = soundMeta?.iosCafFile ?? 'makkah.caf'
+  // Empty iosCafFile (silent) → false suppresses notification sound; unknown sound → fallback
+  const soundFile = soundMeta?.iosCafFile
+  const sound = soundFile === '' ? false : (soundFile ?? 'makkah.caf')
 
+  return { title, body, sound }
+}
+
+function getReminderNotificationContent(
+  prayer: NotifiablePrayer,
+  minutes: number,
+  config: NotificationConfig,
+): { title: string; body: string; sound: string | false } {
+  const prayerName = i18n.t(`prayer.${prayer}`)
+  const title = i18n.t('notification.reminderTitle')
+  const body = i18n.t('notification.reminderBody', { prayer: prayerName, minutes })
+  const soundId = config.prayerSounds[prayer]
+  const prayerSound = getSoundById(soundId)
+  const isSilent = prayerSound?.iosCafFile === ''
+  const reminderSound = getSoundById('soft-chime')
+  const sound = isSilent ? false : (reminderSound?.iosCafFile ?? 'makkah.caf')
   return { title, body, sound }
 }
 
@@ -102,6 +119,31 @@ async function schedulePrayerNotifications(
         },
       })
       scheduled++
+
+      if (config.reminders[prayer].enabled) {
+        const reminderMinutes = config.reminders[prayer].minutes
+        const reminderTime = new Date(time.getTime() - reminderMinutes * 60000)
+        if (reminderTime.getTime() > now && scheduled < MAX_IOS_NOTIFICATIONS) {
+          const reminder = getReminderNotificationContent(prayer, reminderMinutes, config)
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: reminder.title,
+              body: reminder.body,
+              sound: reminder.sound,
+              data: {
+                prayer,
+                date: dayjs(day.date).format('YYYY-MM-DD'),
+                type: 'prayer-reminder',
+              },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date: reminderTime,
+            },
+          })
+          scheduled++
+        }
+      }
     }
   }
 }
@@ -111,14 +153,42 @@ async function cancelAllNotifications(): Promise<void> {
 }
 
 async function reschedule(params: RescheduleParams): Promise<void> {
-  const { coordinates, calculationMethod, madhab, notifications, athanSound, fajrSound } = params
+  const {
+    coordinates,
+    calculationMethod,
+    madhab,
+    notifications,
+    prayerSounds,
+    prayerAdjustments,
+    reminders,
+  } = params
 
-  const days = buildDayPrayerTimes(coordinates, calculationMethod, madhab, SCHEDULE_DAYS)
+  // iOS limits local notifications to 64 pending at any time.
+  // We dynamically calculate how many days to schedule based on
+  // the number of enabled prayers + enabled reminders per day.
+  const enabledPrayerCount = NOTIFIABLE_PRAYERS.filter((p) => notifications[p]).length
+  if (enabledPrayerCount === 0) {
+    await cancelAllNotifications()
+    return
+  }
+  const enabledReminderCount = NOTIFIABLE_PRAYERS.filter(
+    (p) => notifications[p] && reminders[p].enabled,
+  ).length
+  const totalPerDay = enabledPrayerCount + enabledReminderCount
+  const scheduleDays = Math.floor(MAX_IOS_NOTIFICATIONS / totalPerDay)
+
+  const days = buildDayPrayerTimes(
+    coordinates,
+    calculationMethod,
+    madhab,
+    scheduleDays,
+    prayerAdjustments,
+  )
 
   const config: NotificationConfig = {
     settings: notifications,
-    athanSound,
-    fajrSound,
+    prayerSounds,
+    reminders,
   }
 
   await schedulePrayerNotifications(days, config)

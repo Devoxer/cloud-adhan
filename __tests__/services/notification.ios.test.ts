@@ -61,13 +61,17 @@ jest.mock('@/services/prayer', () => ({
 
 // Mock i18n
 jest.mock('@/i18n', () => ({
-  t: jest.fn((key: string) => {
+  t: jest.fn((key: string, params?: Record<string, unknown>) => {
     const map: Record<string, string> = {
       'prayer.fajr': 'Fajr',
       'prayer.dhuhr': 'Dhuhr',
       'prayer.asr': 'Asr',
       'prayer.maghrib': 'Maghrib',
       'prayer.isha': 'Isha',
+      'notification.reminderTitle': 'Reminder',
+    }
+    if (key === 'notification.reminderBody' && params) {
+      return `${params.prayer} in ${params.minutes} minutes`
     }
     return map[key] ?? key
   }),
@@ -110,6 +114,14 @@ function makeFutureDays(count: number): DayPrayerTimes[] {
   return days
 }
 
+const DEFAULT_REMINDERS = {
+  fajr: { enabled: false, minutes: 15 },
+  dhuhr: { enabled: false, minutes: 15 },
+  asr: { enabled: false, minutes: 15 },
+  maghrib: { enabled: false, minutes: 15 },
+  isha: { enabled: false, minutes: 15 },
+}
+
 function defaultConfig(): NotificationConfig {
   return {
     settings: {
@@ -119,8 +131,14 @@ function defaultConfig(): NotificationConfig {
       [Prayer.Maghrib]: true,
       [Prayer.Isha]: true,
     },
-    athanSound: 'makkah',
-    fajrSound: 'fajr-makkah',
+    prayerSounds: {
+      fajr: 'fajr-makkah',
+      dhuhr: 'makkah',
+      asr: 'makkah',
+      maghrib: 'makkah',
+      isha: 'makkah',
+    },
+    reminders: { ...DEFAULT_REMINDERS },
   }
 }
 
@@ -136,8 +154,22 @@ function defaultRescheduleParams(): RescheduleParams {
       [Prayer.Maghrib]: true,
       [Prayer.Isha]: true,
     },
-    athanSound: 'makkah',
-    fajrSound: 'fajr-makkah',
+    prayerSounds: {
+      fajr: 'fajr-makkah',
+      dhuhr: 'makkah',
+      asr: 'makkah',
+      maghrib: 'makkah',
+      isha: 'makkah',
+    },
+    prayerAdjustments: {
+      fajr: 0,
+      sunrise: 0,
+      dhuhr: 0,
+      asr: 0,
+      maghrib: 0,
+      isha: 0,
+    },
+    reminders: { ...DEFAULT_REMINDERS },
   }
 }
 
@@ -246,7 +278,7 @@ describe('services/notification.ios', () => {
       expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(3)
     })
 
-    it('uses fajrSound for Fajr and athanSound for other prayers', async () => {
+    it('uses per-prayer sound lookup from prayerSounds', async () => {
       const days = makeFutureDays(1)
       await notificationService.schedulePrayerNotifications(days, defaultConfig())
 
@@ -260,6 +292,21 @@ describe('services/notification.ios', () => {
       expect(calls[2][0].content.sound).toBe('makkah.caf')
       expect(calls[3][0].content.sound).toBe('makkah.caf')
       expect(calls[4][0].content.sound).toBe('makkah.caf')
+    })
+
+    it('uses false for sound when prayer has silent sound selected', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.prayerSounds.dhuhr = 'silent'
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      const calls = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls
+      // Dhuhr (index 1) should have sound: false
+      expect(calls[1][0].content.sound).toBe(false)
+      // Others should still have their normal sounds
+      expect(calls[0][0].content.sound).toBe('fajr_makkah.caf')
+      expect(calls[2][0].content.sound).toBe('makkah.caf')
     })
 
     it('notifications include correct title (prayer name), body (time), and sound', async () => {
@@ -308,6 +355,127 @@ describe('services/notification.ios', () => {
     })
   })
 
+  describe('reminder notifications', () => {
+    it('schedules reminder notification when reminder is enabled for a prayer', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      // 5 prayers + 1 reminder = 6
+      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(6)
+
+      // Check the reminder notification (second call, after Fajr prayer)
+      const calls = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls
+      const reminderCall = calls[1][0]
+      expect(reminderCall.content.data.type).toBe('prayer-reminder')
+      expect(reminderCall.content.data.prayer).toBe('fajr')
+      expect(reminderCall.content.title).toBe('Reminder')
+    })
+
+    it('does NOT schedule reminder when parent prayer is disabled', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.settings[Prayer.Fajr] = false
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      // 4 prayers (Fajr disabled), 0 reminders (parent disabled)
+      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(4)
+    })
+
+    it('does NOT schedule reminder when reminder time is in the past', async () => {
+      // Set "now" to 10 minutes before Fajr — reminder at 15 min before would be in the past
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-03-17T05:20:00').getTime())
+
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      // Check that no prayer-reminder type was scheduled for fajr day 1
+      const calls = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls
+      const reminderCalls = calls.filter((c: unknown[]) => (c[0] as { content: { data: { type: string } } }).content.data.type === 'prayer-reminder')
+      // Day 1 fajr reminder at 05:15 is in the past (now = 05:20), so skipped
+      expect(reminderCalls.length).toBe(0)
+    })
+  })
+
+  describe('iOS limit with reminders', () => {
+    it('with 5 prayers + 5 reminders, schedules 6 days (totalPerDay=10)', async () => {
+      const { buildDayPrayerTimes } = require('@/services/prayer')
+      const params = defaultRescheduleParams()
+      params.reminders = {
+        fajr: { enabled: true, minutes: 15 },
+        dhuhr: { enabled: true, minutes: 15 },
+        asr: { enabled: true, minutes: 15 },
+        maghrib: { enabled: true, minutes: 15 },
+        isha: { enabled: true, minutes: 15 },
+      }
+
+      await notificationService.reschedule(params)
+
+      // Math.floor(64 / 10) = 6 days
+      expect(buildDayPrayerTimes).toHaveBeenCalledWith(
+        expect.any(Object),
+        'Morocco',
+        'shafi',
+        6,
+        expect.objectContaining({ fajr: 0, dhuhr: 0 }),
+      )
+    })
+
+    it('with 5 prayers + 3 reminders, schedules 8 days (totalPerDay=8)', async () => {
+      const { buildDayPrayerTimes } = require('@/services/prayer')
+      const params = defaultRescheduleParams()
+      params.reminders = {
+        fajr: { enabled: true, minutes: 15 },
+        dhuhr: { enabled: true, minutes: 15 },
+        asr: { enabled: true, minutes: 15 },
+        maghrib: { enabled: false, minutes: 15 },
+        isha: { enabled: false, minutes: 15 },
+      }
+
+      await notificationService.reschedule(params)
+
+      // Math.floor(64 / 8) = 8 days
+      expect(buildDayPrayerTimes).toHaveBeenCalledWith(
+        expect.any(Object),
+        'Morocco',
+        'shafi',
+        8,
+        expect.objectContaining({ fajr: 0, dhuhr: 0 }),
+      )
+    })
+
+    it('disabled prayer with enabled reminder does NOT count toward limit', async () => {
+      const { buildDayPrayerTimes } = require('@/services/prayer')
+      const params = defaultRescheduleParams()
+      params.notifications[Prayer.Fajr] = false
+      params.reminders = {
+        fajr: { enabled: true, minutes: 15 }, // parent disabled — should NOT count
+        dhuhr: { enabled: false, minutes: 15 },
+        asr: { enabled: false, minutes: 15 },
+        maghrib: { enabled: false, minutes: 15 },
+        isha: { enabled: false, minutes: 15 },
+      }
+
+      await notificationService.reschedule(params)
+
+      // 4 prayers, 0 valid reminders → totalPerDay=4, scheduleDays = floor(64/4) = 16
+      expect(buildDayPrayerTimes).toHaveBeenCalledWith(
+        expect.any(Object),
+        'Morocco',
+        'shafi',
+        16,
+        expect.objectContaining({ fajr: 0, dhuhr: 0 }),
+      )
+    })
+  })
+
   describe('cancelAllNotifications', () => {
     it('calls cancelAllScheduledNotificationsAsync', async () => {
       await notificationService.cancelAllNotifications()
@@ -322,6 +490,56 @@ describe('services/notification.ios', () => {
       // Should cancel all then schedule new ones
       expect(Notifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalled()
       expect(Notifications.scheduleNotificationAsync).toHaveBeenCalled()
+    })
+
+    it('with 5 prayers enabled, schedules 12 days (60 notifications)', async () => {
+      const { buildDayPrayerTimes } = require('@/services/prayer')
+      await notificationService.reschedule(defaultRescheduleParams())
+
+      // Math.floor(64 / 5) = 12 days
+      expect(buildDayPrayerTimes).toHaveBeenCalledWith(
+        expect.any(Object),
+        'Morocco',
+        'shafi',
+        12,
+        expect.objectContaining({ fajr: 0, dhuhr: 0 }),
+      )
+      // 12 days × 5 prayers = 60 notifications
+      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(60)
+    })
+
+    it('with 3 prayers enabled, schedules 21 days (63 notifications)', async () => {
+      const { buildDayPrayerTimes } = require('@/services/prayer')
+      const params = defaultRescheduleParams()
+      params.notifications[Prayer.Dhuhr] = false
+      params.notifications[Prayer.Asr] = false
+
+      await notificationService.reschedule(params)
+
+      // Math.floor(64 / 3) = 21 days
+      expect(buildDayPrayerTimes).toHaveBeenCalledWith(
+        expect.any(Object),
+        'Morocco',
+        'shafi',
+        21,
+        expect.objectContaining({ fajr: 0, dhuhr: 0 }),
+      )
+      // 21 days × 3 prayers = 63 notifications
+      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(63)
+    })
+
+    it('with 0 prayers enabled, cancels existing and schedules nothing', async () => {
+      const params = defaultRescheduleParams()
+      params.notifications[Prayer.Fajr] = false
+      params.notifications[Prayer.Dhuhr] = false
+      params.notifications[Prayer.Asr] = false
+      params.notifications[Prayer.Maghrib] = false
+      params.notifications[Prayer.Isha] = false
+
+      await notificationService.reschedule(params)
+
+      expect(Notifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalledTimes(1)
+      expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled()
     })
   })
 

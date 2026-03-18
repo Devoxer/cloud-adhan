@@ -15,12 +15,11 @@ const ALL_METHODS: CalculationMethod[] = [
   'Tehran',
   'Turkey',
   'Morocco',
-  'Other',
 ]
 
 describe('constants/methods', () => {
-  it('defines all 14 calculation methods', () => {
-    expect(Object.keys(CALCULATION_METHODS)).toHaveLength(14)
+  it('defines all 13 calculation methods', () => {
+    expect(Object.keys(CALCULATION_METHODS)).toHaveLength(13)
   })
 
   it('has an entry for every CalculationMethod type value', () => {

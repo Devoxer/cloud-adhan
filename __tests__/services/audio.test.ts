@@ -1,6 +1,19 @@
 const mockPlay = jest.fn()
 const mockRemove = jest.fn()
-const mockPlayer = { play: mockPlay, remove: mockRemove }
+const mockSubscriptionRemove = jest.fn()
+
+let statusListener: ((status: { playing: boolean }) => void) | null = null
+
+const mockPlayer = {
+  play: mockPlay,
+  remove: mockRemove,
+  addListener: jest.fn((event: string, callback: (status: { playing: boolean }) => void) => {
+    if (event === 'playbackStatusUpdate') {
+      statusListener = callback
+    }
+    return { remove: mockSubscriptionRemove }
+  }),
+}
 
 jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(() => mockPlayer),
@@ -11,10 +24,15 @@ import { audioPreviewService } from '@/services/audio'
 
 const mockCreateAudioPlayer = createAudioPlayer as jest.Mock
 
+function simulatePlaybackStart() {
+  statusListener?.({ playing: true })
+}
+
 describe('services/audio', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.useFakeTimers()
+    statusListener = null
     audioPreviewService.stopPreview()
     jest.clearAllMocks()
   })
@@ -24,42 +42,76 @@ describe('services/audio', () => {
   })
 
   describe('playPreview', () => {
-    it('creates a player and calls play()', () => {
-      audioPreviewService.playPreview('makkah')
+    it('creates a player, listens for status, and calls play()', async () => {
+      const promise = audioPreviewService.playPreview('makkah')
+      simulatePlaybackStart()
+      await promise
 
       expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(1)
+      expect(mockPlayer.addListener).toHaveBeenCalledWith('playbackStatusUpdate', expect.any(Function))
       expect(mockPlay).toHaveBeenCalledTimes(1)
     })
 
-    it('sets currentSoundId and isPlaying', () => {
-      audioPreviewService.playPreview('madinah')
+    it('sets currentSoundId and isPlaying after playback starts', async () => {
+      const promise = audioPreviewService.playPreview('madinah')
+      simulatePlaybackStart()
+      await promise
 
       expect(audioPreviewService.currentSoundId).toBe('madinah')
       expect(audioPreviewService.isPlaying).toBe(true)
     })
 
-    it('stops previous preview before starting new one', () => {
-      audioPreviewService.playPreview('makkah')
-      jest.clearAllMocks()
+    it('stops previous preview before starting new one', async () => {
+      const promise1 = audioPreviewService.playPreview('makkah')
+      simulatePlaybackStart()
+      await promise1
 
-      audioPreviewService.playPreview('alaqsa')
+      jest.clearAllMocks()
+      statusListener = null
+
+      const promise2 = audioPreviewService.playPreview('alaqsa')
+      simulatePlaybackStart()
+      await promise2
 
       expect(mockRemove).toHaveBeenCalledTimes(1)
       expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(1)
       expect(audioPreviewService.currentSoundId).toBe('alaqsa')
     })
 
-    it('does nothing for invalid sound ID', () => {
-      audioPreviewService.playPreview('nonexistent')
+    it('does nothing for invalid sound ID', async () => {
+      await audioPreviewService.playPreview('nonexistent')
 
       expect(mockCreateAudioPlayer).not.toHaveBeenCalled()
       expect(audioPreviewService.isPlaying).toBe(false)
     })
+
+    it('calls onError callback on readiness timeout', async () => {
+      const onError = jest.fn()
+      const promise = audioPreviewService.playPreview('makkah', { onError })
+
+      // Advance past readiness timeout (3 seconds)
+      jest.advanceTimersByTime(3000)
+      await promise
+
+      expect(onError).toHaveBeenCalledWith(expect.any(Error))
+      expect(audioPreviewService.isPlaying).toBe(false)
+    })
+
+    it('removes event subscription when playback starts', async () => {
+      const promise = audioPreviewService.playPreview('makkah')
+      simulatePlaybackStart()
+      await promise
+
+      expect(mockSubscriptionRemove).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('auto-stop', () => {
-    it('stops after 5 seconds', () => {
-      audioPreviewService.playPreview('makkah')
+    it('stops after 5 seconds', async () => {
+      const promise = audioPreviewService.playPreview('makkah')
+      simulatePlaybackStart()
+      await promise
+
       expect(audioPreviewService.isPlaying).toBe(true)
 
       jest.advanceTimersByTime(5000)
@@ -69,18 +121,23 @@ describe('services/audio', () => {
       expect(audioPreviewService.currentSoundId).toBeNull()
     })
 
-    it('calls onAutoStop callback when auto-stopping', () => {
+    it('calls onAutoStop callback when auto-stopping', async () => {
       const onAutoStop = jest.fn()
-      audioPreviewService.playPreview('makkah', onAutoStop)
+      const promise = audioPreviewService.playPreview('makkah', { onAutoStop })
+      simulatePlaybackStart()
+      await promise
 
       jest.advanceTimersByTime(5000)
 
       expect(onAutoStop).toHaveBeenCalledTimes(1)
     })
 
-    it('does not call onAutoStop if manually stopped', () => {
+    it('does not call onAutoStop if manually stopped', async () => {
       const onAutoStop = jest.fn()
-      audioPreviewService.playPreview('makkah', onAutoStop)
+      const promise = audioPreviewService.playPreview('makkah', { onAutoStop })
+      simulatePlaybackStart()
+      await promise
+
       audioPreviewService.stopPreview()
 
       jest.advanceTimersByTime(5000)
@@ -90,8 +147,10 @@ describe('services/audio', () => {
   })
 
   describe('stopPreview', () => {
-    it('calls remove() on the player', () => {
-      audioPreviewService.playPreview('makkah')
+    it('calls remove() on the player', async () => {
+      const promise = audioPreviewService.playPreview('makkah')
+      simulatePlaybackStart()
+      await promise
       jest.clearAllMocks()
 
       audioPreviewService.stopPreview()
@@ -99,8 +158,11 @@ describe('services/audio', () => {
       expect(mockRemove).toHaveBeenCalledTimes(1)
     })
 
-    it('resets state', () => {
-      audioPreviewService.playPreview('mishary')
+    it('resets state', async () => {
+      const promise = audioPreviewService.playPreview('mishary')
+      simulatePlaybackStart()
+      await promise
+
       audioPreviewService.stopPreview()
 
       expect(audioPreviewService.currentSoundId).toBeNull()
@@ -109,6 +171,20 @@ describe('services/audio', () => {
 
     it('is safe to call when nothing is playing', () => {
       expect(() => audioPreviewService.stopPreview()).not.toThrow()
+    })
+
+    it('cancels readiness timeout when called during loading', async () => {
+      const onError = jest.fn()
+      audioPreviewService.playPreview('makkah', { onError })
+
+      // Stop before readiness resolves — should clean up internal timeout
+      audioPreviewService.stopPreview()
+
+      // Advance past readiness timeout — onError should NOT fire
+      jest.advanceTimersByTime(3000)
+
+      expect(onError).not.toHaveBeenCalled()
+      expect(mockSubscriptionRemove).toHaveBeenCalled()
     })
   })
 })

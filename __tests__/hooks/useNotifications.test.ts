@@ -31,8 +31,28 @@ let mockSettings = {
     [Prayer.Maghrib]: true,
     [Prayer.Isha]: true,
   },
-  athanSound: 'makkah',
-  fajrSound: 'fajr-makkah',
+  prayerSounds: {
+    fajr: 'makkah',
+    dhuhr: 'makkah',
+    asr: 'makkah',
+    maghrib: 'makkah',
+    isha: 'makkah',
+  },
+  prayerAdjustments: {
+    fajr: 0,
+    sunrise: 0,
+    dhuhr: 0,
+    asr: 0,
+    maghrib: 0,
+    isha: 0,
+  },
+  reminders: {
+    fajr: { enabled: false, minutes: 15 },
+    dhuhr: { enabled: false, minutes: 15 },
+    asr: { enabled: false, minutes: 15 },
+    maghrib: { enabled: false, minutes: 15 },
+    isha: { enabled: false, minutes: 15 },
+  },
 }
 
 let mockCoordinates: { latitude: number; longitude: number } | null = {
@@ -75,8 +95,28 @@ describe('hooks/useNotifications', () => {
         [Prayer.Maghrib]: true,
         [Prayer.Isha]: true,
       },
-      athanSound: 'makkah',
-      fajrSound: 'fajr-makkah',
+      prayerSounds: {
+        fajr: 'makkah',
+        dhuhr: 'makkah',
+        asr: 'makkah',
+        maghrib: 'makkah',
+        isha: 'makkah',
+      },
+      prayerAdjustments: {
+        fajr: 0,
+        sunrise: 0,
+        dhuhr: 0,
+        asr: 0,
+        maghrib: 0,
+        isha: 0,
+      },
+      reminders: {
+        fajr: { enabled: false, minutes: 15 },
+        dhuhr: { enabled: false, minutes: 15 },
+        asr: { enabled: false, minutes: 15 },
+        maghrib: { enabled: false, minutes: 15 },
+        isha: { enabled: false, minutes: 15 },
+      },
     }
     mockCoordinates = { latitude: 33.5731, longitude: -7.5898 }
   })
@@ -228,7 +268,7 @@ describe('hooks/useNotifications', () => {
     })
   })
 
-  it('triggers reschedule when athan sound changes', async () => {
+  it('triggers reschedule when prayer sound changes', async () => {
     const { useSettingsStore } = require('@/stores/settings')
 
     const { rerender } = renderHook(() => useNotifications())
@@ -245,8 +285,8 @@ describe('hooks/useNotifications', () => {
       expect(mockReschedule).toHaveBeenCalledTimes(1)
     })
 
-    // Change athan sound
-    mockSettings = { ...mockSettings, athanSound: 'madinah' }
+    // Change prayer sound
+    mockSettings = { ...mockSettings, prayerSounds: { ...mockSettings.prayerSounds, fajr: 'madinah' } }
     ;(useSettingsStore as jest.Mock).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
         selector(mockSettings as unknown as Record<string, unknown>),
@@ -262,6 +302,93 @@ describe('hooks/useNotifications', () => {
     })
   })
 
+  it('triggers reschedule when prayerAdjustments changes', async () => {
+    const { useSettingsStore } = require('@/stores/settings')
+
+    const { rerender } = renderHook(() => useNotifications())
+
+    await waitFor(() => {
+      expect(mockCheckPermissions).toHaveBeenCalledTimes(1)
+    })
+
+    act(() => {
+      jest.advanceTimersByTime(350)
+    })
+
+    await waitFor(() => {
+      expect(mockReschedule).toHaveBeenCalledTimes(1)
+    })
+
+    // Change prayerAdjustments
+    mockSettings = {
+      ...mockSettings,
+      prayerAdjustments: { ...mockSettings.prayerAdjustments, fajr: 5 },
+    }
+    ;(useSettingsStore as jest.Mock).mockImplementation(
+      (selector: (state: Record<string, unknown>) => unknown) =>
+        selector(mockSettings as unknown as Record<string, unknown>),
+    )
+    rerender({})
+
+    act(() => {
+      jest.advanceTimersByTime(350)
+    })
+
+    await waitFor(() => {
+      expect(mockReschedule).toHaveBeenCalledTimes(2)
+    })
+
+    // Verify params include prayerAdjustments
+    const lastCallParams = mockReschedule.mock.calls[1][0]
+    expect(lastCallParams).toHaveProperty('prayerAdjustments')
+    expect(lastCallParams.prayerAdjustments.fajr).toBe(5)
+  })
+
+  it('triggers reschedule when reminders change', async () => {
+    const { useSettingsStore } = require('@/stores/settings')
+
+    const { rerender } = renderHook(() => useNotifications())
+
+    await waitFor(() => {
+      expect(mockCheckPermissions).toHaveBeenCalledTimes(1)
+    })
+
+    act(() => {
+      jest.advanceTimersByTime(350)
+    })
+
+    await waitFor(() => {
+      expect(mockReschedule).toHaveBeenCalledTimes(1)
+    })
+
+    // Change reminders
+    mockSettings = {
+      ...mockSettings,
+      reminders: {
+        ...mockSettings.reminders,
+        fajr: { enabled: true, minutes: 15 },
+      },
+    }
+    ;(useSettingsStore as jest.Mock).mockImplementation(
+      (selector: (state: Record<string, unknown>) => unknown) =>
+        selector(mockSettings as unknown as Record<string, unknown>),
+    )
+    rerender({})
+
+    act(() => {
+      jest.advanceTimersByTime(350)
+    })
+
+    await waitFor(() => {
+      expect(mockReschedule).toHaveBeenCalledTimes(2)
+    })
+
+    // Verify params include reminders
+    const lastCallParams = mockReschedule.mock.calls[1][0]
+    expect(lastCallParams).toHaveProperty('reminders')
+    expect(lastCallParams.reminders.fajr.enabled).toBe(true)
+  })
+
   it('debounces rapid setting changes into a single reschedule', async () => {
     const { useSettingsStore } = require('@/stores/settings')
 
@@ -274,7 +401,7 @@ describe('hooks/useNotifications', () => {
 
     // Rapidly change 3 settings within 100ms each
     // Each change resets the debounce timer (including the initial one)
-    mockSettings = { ...mockSettings, athanSound: 'madinah' }
+    mockSettings = { ...mockSettings, prayerSounds: { ...mockSettings.prayerSounds, dhuhr: 'madinah' } }
     ;(useSettingsStore as jest.Mock).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
         selector(mockSettings as unknown as Record<string, unknown>),
@@ -285,7 +412,7 @@ describe('hooks/useNotifications', () => {
       jest.advanceTimersByTime(100)
     })
 
-    mockSettings = { ...mockSettings, fajrSound: 'fajr-mishary' }
+    mockSettings = { ...mockSettings, prayerSounds: { ...mockSettings.prayerSounds, fajr: 'fajr-mishary' } }
     ;(useSettingsStore as jest.Mock).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
         selector(mockSettings as unknown as Record<string, unknown>),

@@ -7,8 +7,8 @@ import {
   METHOD_MAP,
   MADHAB_MAP,
 } from '@/services/prayer'
-import { Prayer } from '@/types/prayer'
-import type { CalculationMethod, Madhab } from '@/types/prayer'
+import { Prayer, DEFAULT_PRAYER_ADJUSTMENTS } from '@/types/prayer'
+import type { CalculationMethod, Madhab, PrayerAdjustments } from '@/types/prayer'
 
 const makkah = { latitude: 21.4225, longitude: 39.8262 }
 const newYork = { latitude: 40.7128, longitude: -74.006 }
@@ -33,11 +33,10 @@ describe('services/prayer', () => {
       'Tehran',
       'Turkey',
       'Morocco',
-      'Other',
     ]
 
-    it('has mappings for all 14 methods', () => {
-      expect(Object.keys(METHOD_MAP)).toHaveLength(14)
+    it('has mappings for all 13 methods', () => {
+      expect(Object.keys(METHOD_MAP)).toHaveLength(13)
     })
 
     it.each(allMethods)('%s maps to a function returning CalculationParameters', (method) => {
@@ -76,11 +75,11 @@ describe('services/prayer', () => {
       expect(result.maghrib.getTime()).toBeLessThan(result.isha.getTime())
     })
 
-    it('works with all 14 calculation methods', () => {
+    it('works with all 13 calculation methods', () => {
       const methods: CalculationMethod[] = [
         'MuslimWorldLeague', 'Egyptian', 'Karachi', 'UmmAlQura', 'Dubai',
         'MoonsightingCommittee', 'NorthAmerica', 'Kuwait', 'Qatar',
-        'Singapore', 'Tehran', 'Turkey', 'Morocco', 'Other',
+        'Singapore', 'Tehran', 'Turkey', 'Morocco',
       ]
       for (const method of methods) {
         const result = calculatePrayerTimes(makkah, new Date(2026, 2, 15), method, 'shafi')
@@ -325,6 +324,62 @@ describe('services/prayer', () => {
       const bearing = calculateQiblaDirection(casablanca)
       expect(typeof bearing).toBe('number')
       expect(Number.isFinite(bearing)).toBe(true)
+    })
+  })
+
+  describe('prayerAdjustments', () => {
+    const date = new Date(2026, 2, 15)
+    const coords = casablanca
+    const method: CalculationMethod = 'Morocco'
+    const madhab: Madhab = 'shafi'
+
+    it('returns same results without adjustments as with all-zero adjustments', () => {
+      const noAdj = calculatePrayerTimes(coords, date, method, madhab)
+      const zeroAdj = calculatePrayerTimes(coords, date, method, madhab, DEFAULT_PRAYER_ADJUSTMENTS)
+
+      expect(noAdj.fajr.getTime()).toBe(zeroAdj.fajr.getTime())
+      expect(noAdj.dhuhr.getTime()).toBe(zeroAdj.dhuhr.getTime())
+      expect(noAdj.isha.getTime()).toBe(zeroAdj.isha.getTime())
+    })
+
+    it('applies positive adjustments correctly', () => {
+      const adj: PrayerAdjustments = { fajr: 5, sunrise: 0, dhuhr: -3, asr: 0, maghrib: 0, isha: 10 }
+      const base = calculatePrayerTimes(coords, date, method, madhab)
+      const adjusted = calculatePrayerTimes(coords, date, method, madhab, adj)
+
+      // Fajr should be ~5 minutes later
+      const fajrDiff = (adjusted.fajr.getTime() - base.fajr.getTime()) / 60000
+      expect(fajrDiff).toBeCloseTo(5, 0)
+
+      // Dhuhr should be ~3 minutes earlier
+      const dhuhrDiff = (adjusted.dhuhr.getTime() - base.dhuhr.getTime()) / 60000
+      expect(dhuhrDiff).toBeCloseTo(-3, 0)
+
+      // Isha should be ~10 minutes later
+      const ishaDiff = (adjusted.isha.getTime() - base.isha.getTime()) / 60000
+      expect(ishaDiff).toBeCloseTo(10, 0)
+    })
+
+    it('adjustments stack with Morocco method methodAdjustments', () => {
+      // Morocco method already has methodAdjustments.dhuhr = 5
+      const adj: PrayerAdjustments = { fajr: 0, sunrise: 0, dhuhr: 3, asr: 0, maghrib: 0, isha: 0 }
+      const base = calculatePrayerTimes(coords, date, method, madhab)
+      const adjusted = calculatePrayerTimes(coords, date, method, madhab, adj)
+
+      // Dhuhr should be ~3 minutes later (on top of method's +5)
+      const dhuhrDiff = (adjusted.dhuhr.getTime() - base.dhuhr.getTime()) / 60000
+      expect(dhuhrDiff).toBeCloseTo(3, 0)
+    })
+
+    it('buildDayPrayerTimes threads adjustments to each day', () => {
+      const adj: PrayerAdjustments = { fajr: 5, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 }
+      const baseDays = buildDayPrayerTimes(coords, method, madhab, 3)
+      const adjDays = buildDayPrayerTimes(coords, method, madhab, 3, adj)
+
+      for (let i = 0; i < 3; i++) {
+        const fajrDiff = (adjDays[i].times.fajr.getTime() - baseDays[i].times.fajr.getTime()) / 60000
+        expect(fajrDiff).toBeCloseTo(5, 0)
+      }
     })
   })
 

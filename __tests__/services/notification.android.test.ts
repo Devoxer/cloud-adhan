@@ -85,6 +85,14 @@ function makeFutureDays(count: number): DayPrayerTimes[] {
   return days
 }
 
+const DEFAULT_REMINDERS = {
+  fajr: { enabled: false, minutes: 15 },
+  dhuhr: { enabled: false, minutes: 15 },
+  asr: { enabled: false, minutes: 15 },
+  maghrib: { enabled: false, minutes: 15 },
+  isha: { enabled: false, minutes: 15 },
+}
+
 function defaultConfig(): NotificationConfig {
   return {
     settings: {
@@ -94,8 +102,14 @@ function defaultConfig(): NotificationConfig {
       [Prayer.Maghrib]: true,
       [Prayer.Isha]: true,
     },
-    athanSound: 'makkah',
-    fajrSound: 'fajr-makkah',
+    prayerSounds: {
+      fajr: 'fajr-makkah',
+      dhuhr: 'makkah',
+      asr: 'makkah',
+      maghrib: 'makkah',
+      isha: 'makkah',
+    },
+    reminders: { ...DEFAULT_REMINDERS },
   }
 }
 
@@ -111,8 +125,22 @@ function defaultRescheduleParams(): RescheduleParams {
       [Prayer.Maghrib]: true,
       [Prayer.Isha]: true,
     },
-    athanSound: 'makkah',
-    fajrSound: 'fajr-makkah',
+    prayerSounds: {
+      fajr: 'fajr-makkah',
+      dhuhr: 'makkah',
+      asr: 'makkah',
+      maghrib: 'makkah',
+      isha: 'makkah',
+    },
+    prayerAdjustments: {
+      fajr: 0,
+      sunrise: 0,
+      dhuhr: 0,
+      asr: 0,
+      maghrib: 0,
+      isha: 0,
+    },
+    reminders: { ...DEFAULT_REMINDERS },
   }
 }
 
@@ -194,7 +222,7 @@ describe('services/notification.android', () => {
       expect(AlarmManagerModule.scheduleAlarm).toHaveBeenCalledTimes(3)
     })
 
-    it('uses fajrSound for Fajr and athanSound for other prayers', async () => {
+    it('uses per-prayer sound lookup from prayerSounds', async () => {
       const days = makeFutureDays(1)
       await notificationService.schedulePrayerNotifications(days, defaultConfig())
 
@@ -208,6 +236,21 @@ describe('services/notification.android', () => {
       expect(calls[2][2]).toBe('makkah')
       expect(calls[3][2]).toBe('makkah')
       expect(calls[4][2]).toBe('makkah')
+    })
+
+    it('skips scheduling for silent sound prayers', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.prayerSounds.dhuhr = 'silent'
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      // 4 prayers scheduled (Fajr, Asr, Maghrib, Isha) — Dhuhr skipped (silent)
+      expect(AlarmManagerModule.scheduleAlarm).toHaveBeenCalledTimes(4)
+      const prayerIds = (AlarmManagerModule.scheduleAlarm as jest.Mock).mock.calls.map(
+        (c: unknown[]) => c[0],
+      )
+      expect(prayerIds).not.toContain(expect.stringContaining('dhuhr'))
     })
 
     it('skips past prayer times', async () => {
@@ -251,6 +294,79 @@ describe('services/notification.android', () => {
       const firstCall = (AlarmManagerModule.scheduleAlarm as jest.Mock).mock.calls[0]
       // Fajr time for day 1
       expect(firstCall[1]).toBe(new Date('2026-03-17T05:30:00').getTime())
+    })
+  })
+
+  describe('reminder alarms', () => {
+    it('schedules reminder alarm with correct ID format when reminder enabled', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      // 5 prayers + 1 reminder = 6
+      expect(AlarmManagerModule.scheduleAlarm).toHaveBeenCalledTimes(6)
+
+      const calls = (AlarmManagerModule.scheduleAlarm as jest.Mock).mock.calls
+      const reminderCall = calls.find((c: unknown[]) => (c[0] as string).startsWith('reminder-'))
+      expect(reminderCall).toBeDefined()
+      expect(reminderCall[0]).toBe('reminder-fajr-2026-03-17')
+    })
+
+    it('schedules reminder at correct timestamp (prayer time - minutes)', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      const calls = (AlarmManagerModule.scheduleAlarm as jest.Mock).mock.calls
+      const reminderCall = calls.find((c: unknown[]) => (c[0] as string).startsWith('reminder-'))
+      // Fajr at 05:30, reminder 15 min before = 05:15
+      const expectedTime = new Date('2026-03-17T05:15:00').getTime()
+      expect(reminderCall[1]).toBe(expectedTime)
+    })
+
+    it('does NOT schedule reminder when parent prayer is disabled', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.settings[Prayer.Fajr] = false
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      const calls = (AlarmManagerModule.scheduleAlarm as jest.Mock).mock.calls
+      const reminderCalls = calls.filter((c: unknown[]) => (c[0] as string).startsWith('reminder-'))
+      expect(reminderCalls.length).toBe(0)
+    })
+
+    it('does NOT schedule reminder when reminder time is in the past', async () => {
+      // Set "now" to 10 minutes before Fajr — reminder at 15 min before would be in the past
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-03-17T05:20:00').getTime())
+
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      const calls = (AlarmManagerModule.scheduleAlarm as jest.Mock).mock.calls
+      const reminderCalls = calls.filter((c: unknown[]) => (c[0] as string).startsWith('reminder-'))
+      // Fajr reminder at 05:15 is in the past (now = 05:20), so skipped
+      expect(reminderCalls.length).toBe(0)
+    })
+
+    it('uses makkah sound for reminder alarms', async () => {
+      const days = makeFutureDays(1)
+      const config = defaultConfig()
+      config.reminders.fajr = { enabled: true, minutes: 15 }
+
+      await notificationService.schedulePrayerNotifications(days, config)
+
+      const calls = (AlarmManagerModule.scheduleAlarm as jest.Mock).mock.calls
+      const reminderCall = calls.find((c: unknown[]) => (c[0] as string).startsWith('reminder-'))
+      expect(reminderCall[2]).toBe('makkah')
     })
   })
 

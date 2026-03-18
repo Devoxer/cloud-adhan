@@ -1,29 +1,53 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native'
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native'
 
 import { AppText } from '@/components/ui/AppText'
 import { IconButton } from '@/components/ui/IconButton'
-import { type AthanSound, getAthanSounds, getFajrSounds, getSoundById } from '@/constants/sounds'
+import {
+  type AthanSound,
+  getSoundById,
+  getSoundsByCategory,
+  type SoundCategory,
+} from '@/constants/sounds'
 import { useTheme } from '@/hooks/useTheme'
 import { audioPreviewService } from '@/services/audio'
 import { useSettingsStore } from '@/stores/settings'
+import type { NotifiablePrayer } from '@/types/prayer'
+
+const CATEGORY_TITLE_KEYS: Record<SoundCategory, string> = {
+  athan: 'settings.categoryAthan',
+  tone: 'settings.categoryTone',
+  vibration: 'settings.categoryVibration',
+  special: 'settings.categorySpecial',
+  silent: 'settings.categorySilent',
+}
 
 interface AthanSoundPickerProps {
+  prayer: NotifiablePrayer
   onSelect?: () => void
 }
 
-export function AthanSoundPicker({ onSelect }: AthanSoundPickerProps) {
+export function AthanSoundPicker({ prayer, onSelect }: AthanSoundPickerProps) {
   const { t } = useTranslation()
   const { tokens } = useTheme()
 
-  const athanSound = useSettingsStore((s) => s.athanSound)
-  const fajrSound = useSettingsStore((s) => s.fajrSound)
-  const setAthanSound = useSettingsStore((s) => s.setAthanSound)
-  const setFajrSound = useSettingsStore((s) => s.setFajrSound)
+  const selectedSoundId = useSettingsStore((s) => s.prayerSounds[prayer])
+  const setPrayerSound = useSettingsStore((s) => s.setPrayerSound)
 
   const [playingSoundId, setPlayingSoundId] = useState<string | null>(null)
+  const [loadingSoundId, setLoadingSoundId] = useState<string | null>(null)
+  const [errorSoundId, setErrorSoundId] = useState<string | null>(null)
+
+  const categoryGroups = useMemo(() => getSoundsByCategory(), [])
 
   useEffect(() => {
     return () => audioPreviewService.stopPreview()
@@ -31,45 +55,52 @@ export function AthanSoundPicker({ onSelect }: AthanSoundPickerProps) {
 
   const handlePreviewToggle = useCallback(
     (soundId: string) => {
-      if (playingSoundId === soundId) {
+      setErrorSoundId(null)
+
+      if (playingSoundId === soundId || loadingSoundId === soundId) {
         audioPreviewService.stopPreview()
         setPlayingSoundId(null)
+        setLoadingSoundId(null)
       } else {
-        audioPreviewService.playPreview(soundId, () => {
-          setPlayingSoundId(null)
-        })
-        setPlayingSoundId(soundId)
+        setLoadingSoundId(soundId)
+        setPlayingSoundId(null)
+
+        audioPreviewService
+          .playPreview(soundId, {
+            onAutoStop: () => {
+              setPlayingSoundId(null)
+            },
+            onError: () => {
+              setLoadingSoundId(null)
+              setPlayingSoundId(null)
+              setErrorSoundId(soundId)
+              AccessibilityInfo.announceForAccessibility(t('settings.previewFailed'))
+            },
+          })
+          .then(() => {
+            if (audioPreviewService.currentSoundId === soundId) {
+              setLoadingSoundId(null)
+              setPlayingSoundId(soundId)
+            }
+          })
+          .catch(() => {
+            // Error already handled via onError callback
+          })
       }
     },
-    [playingSoundId],
+    [playingSoundId, loadingSoundId, t],
   )
 
-  const handleSelectAthan = useCallback(
+  const handleSelect = useCallback(
     (soundId: string) => {
-      setAthanSound(soundId)
+      setPrayerSound(prayer, soundId)
       const sound = getSoundById(soundId)
       if (sound) {
-        AccessibilityInfo.announceForAccessibility(
-          `${t('settings.athanSound')}: ${t(sound.nameKey)}`,
-        )
+        AccessibilityInfo.announceForAccessibility(`${t(`prayer.${prayer}`)}: ${t(sound.nameKey)}`)
       }
       onSelect?.()
     },
-    [setAthanSound, t, onSelect],
-  )
-
-  const handleSelectFajr = useCallback(
-    (soundId: string) => {
-      setFajrSound(soundId)
-      const sound = getSoundById(soundId)
-      if (sound) {
-        AccessibilityInfo.announceForAccessibility(
-          `${t('settings.fajrSound')}: ${t(sound.nameKey)}`,
-        )
-      }
-      onSelect?.()
-    },
-    [setFajrSound, t, onSelect],
+    [setPrayerSound, prayer, t, onSelect],
   )
 
   const styles = useMemo(
@@ -119,83 +150,93 @@ export function AthanSoundPicker({ onSelect }: AthanSoundPickerProps) {
         gap: {
           height: tokens.spacing.lg,
         },
+        errorText: {
+          paddingStart: 28 + tokens.spacing.sm,
+        },
       }),
     [tokens],
   )
 
-  const renderSoundRow = (
-    sound: AthanSound,
-    isSelected: boolean,
-    onSelect: (id: string) => void,
-  ) => {
+  const renderSoundRow = (sound: AthanSound) => {
+    const isSelected = selectedSoundId === sound.id
     const isCurrentlyPlaying = playingSoundId === sound.id
+    const isLoading = loadingSoundId === sound.id
+    const hasError = errorSoundId === sound.id
     const soundName = t(sound.nameKey)
 
     return (
-      <Pressable
-        key={sound.id}
-        onPress={() => onSelect(sound.id)}
-        accessibilityRole="radio"
-        accessibilityState={{ checked: isSelected }}
-        accessibilityLabel={soundName}
-        style={({ pressed }) => [
-          styles.row,
-          isSelected && styles.rowSelected,
-          pressed && Platform.OS === 'ios' && { opacity: 0.7 },
-        ]}
-        android_ripple={{ color: tokens.colors.accentSubtle }}
-      >
-        <View style={styles.rowContent}>
-          <View
-            style={[styles.radio, isSelected && styles.radioSelected]}
-            accessibilityElementsHidden
-          >
-            {isSelected && <View style={styles.radioDot} />}
-          </View>
-          <AppText variant="body" style={styles.label}>
-            {soundName}
-          </AppText>
-          <IconButton
-            icon={({ color, size }) => (
-              <Ionicons
-                name={isCurrentlyPlaying ? 'stop-circle-outline' : 'play-circle-outline'}
-                size={size}
-                color={isCurrentlyPlaying ? tokens.colors.teal : color}
+      <View key={sound.id}>
+        <Pressable
+          onPress={() => handleSelect(sound.id)}
+          accessibilityRole="radio"
+          accessibilityState={{ checked: isSelected }}
+          accessibilityLabel={soundName}
+          style={({ pressed }) => [
+            styles.row,
+            isSelected && styles.rowSelected,
+            pressed && Platform.OS === 'ios' && { opacity: 0.7 },
+          ]}
+          android_ripple={{ color: tokens.colors.accentSubtle }}
+        >
+          <View style={styles.rowContent}>
+            <View
+              style={[styles.radio, isSelected && styles.radioSelected]}
+              accessibilityElementsHidden
+            >
+              {isSelected && <View style={styles.radioDot} />}
+            </View>
+            <AppText variant="body" style={styles.label}>
+              {soundName}
+            </AppText>
+            {isLoading ? (
+              <ActivityIndicator
+                size="small"
+                color={tokens.colors.accent}
+                accessibilityLabel={t('common.loading')}
+              />
+            ) : (
+              <IconButton
+                icon={({ color, size }) => (
+                  <Ionicons
+                    name={isCurrentlyPlaying ? 'stop-circle-outline' : 'play-circle-outline'}
+                    size={size}
+                    color={isCurrentlyPlaying ? tokens.colors.teal : color}
+                  />
+                )}
+                onPress={() => handlePreviewToggle(sound.id)}
+                accessibilityLabel={
+                  isCurrentlyPlaying
+                    ? t('settings.stopPreview')
+                    : t('settings.previewSound', { name: soundName })
+                }
               />
             )}
-            onPress={() => handlePreviewToggle(sound.id)}
-            accessibilityLabel={
-              isCurrentlyPlaying
-                ? t('settings.stopPreview')
-                : t('settings.previewSound', { name: soundName })
-            }
-          />
-        </View>
-      </Pressable>
+          </View>
+        </Pressable>
+        {hasError && (
+          <View style={styles.errorText}>
+            <AppText variant="caption" color="error">
+              {t('settings.previewFailed')}
+            </AppText>
+          </View>
+        )}
+      </View>
     )
   }
 
   return (
     <View>
-      <View style={styles.section}>
-        <View accessible accessibilityRole="header" style={styles.sectionHeader}>
-          <AppText variant="h3">{t('settings.athanSound')}</AppText>
+      {categoryGroups.map((group, index) => (
+        <View key={group.category}>
+          {index > 0 && <View style={styles.gap} />}
+          <View style={styles.section}>
+            <View accessible accessibilityRole="header" style={styles.sectionHeader}>
+              <AppText variant="h3">{t(CATEGORY_TITLE_KEYS[group.category])}</AppText>
+            </View>
+            {group.sounds.map(renderSoundRow)}
+          </View>
         </View>
-        {getAthanSounds().map((sound) =>
-          renderSoundRow(sound, athanSound === sound.id, handleSelectAthan),
-        )}
-      </View>
-
-      <View style={styles.gap} />
-
-      <View style={styles.section}>
-        <View accessible accessibilityRole="header" style={styles.sectionHeader}>
-          <AppText variant="h3">{t('settings.fajrSound')}</AppText>
-        </View>
-        {getFajrSounds().map((sound) =>
-          renderSoundRow(sound, fajrSound === sound.id, handleSelectFajr),
-        )}
-      </View>
+      ))}
     </View>
   )
 }

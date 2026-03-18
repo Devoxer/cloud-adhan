@@ -1,3 +1,4 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import {
   DarkTheme,
   DefaultTheme,
@@ -28,9 +29,14 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 }
 
-I18nManager.allowRTL(true)
-
 SplashScreen.preventAutoHideAsync()
+
+// Reset persisted RTL state from previous versions that used I18nManager.forceRTL(true).
+// forceRTL persists in native preferences across app restarts — this undoes it once.
+if (I18nManager.isRTL) {
+  I18nManager.allowRTL(false)
+  I18nManager.forceRTL(false)
+}
 
 const routingInstrumentation = Sentry.reactNavigationIntegration()
 
@@ -73,7 +79,6 @@ function RootLayout() {
   })
   const language = useSettingsStore((s) => s.language)
   const setLanguage = useSettingsStore((s) => s.setLanguage)
-  const shouldBeRTL = language === 'ar'
   const hasSyncedRef = useRef(false)
   const navigationRef = useNavigationContainerRef()
 
@@ -112,14 +117,6 @@ function RootLayout() {
     }
   }, [language, setLanguage])
 
-  useEffect(() => {
-    if (I18nManager.isRTL !== shouldBeRTL) {
-      I18nManager.forceRTL(shouldBeRTL)
-      // I18nManager.forceRTL() requires app reload to take effect.
-      // expo-updates is not installed; the change applies on next app launch.
-    }
-  }, [shouldBeRTL])
-
   // Initialize notification service and set up listeners (skip on web — view-only)
   useEffect(() => {
     if (Platform.OS === 'web') return
@@ -129,16 +126,23 @@ function RootLayout() {
     const receivedSub = Notifications.addNotificationReceivedListener(() => {
       const { coordinates } = useLocationStore.getState()
       if (!coordinates) return
-      const { calculationMethod, madhab, notifications, athanSound, fajrSound } =
-        useSettingsStore.getState()
+      const {
+        calculationMethod,
+        madhab,
+        notifications,
+        prayerSounds,
+        prayerAdjustments,
+        reminders,
+      } = useSettingsStore.getState()
       notificationService
         .reschedule({
           coordinates,
           calculationMethod,
           madhab,
           notifications,
-          athanSound,
-          fajrSound,
+          prayerSounds,
+          prayerAdjustments,
+          reminders,
         })
         .catch((error: unknown) => {
           captureError(error, { listener: 'notificationReceived', operation: 'reschedule' })
@@ -162,7 +166,9 @@ function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <RootLayoutNav />
+        <BottomSheetModalProvider>
+          <RootLayoutNav />
+        </BottomSheetModalProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   )
@@ -180,4 +186,4 @@ function RootLayoutNav() {
   )
 }
 
-export default Sentry.wrap(RootLayout)
+export default __DEV__ ? RootLayout : Sentry.wrap(RootLayout)

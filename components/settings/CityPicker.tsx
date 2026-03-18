@@ -1,20 +1,13 @@
-import { FlashList } from '@shopify/flash-list'
+import { BottomSheetFlatList, BottomSheetTextInput } from '@gorhom/bottom-sheet'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  AccessibilityInfo,
-  I18nManager,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native'
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native'
 
 import { AppText } from '@/components/ui/AppText'
 import { CITIES, type CityInfo } from '@/constants/cities'
 import { useTheme } from '@/hooks/useTheme'
 import { useLocationStore } from '@/stores/location'
+import { captureError } from '@/utils/sentry'
 
 type CityPickerProps = {
   onSelect?: () => void
@@ -27,6 +20,7 @@ export function CityPicker({ onSelect }: CityPickerProps) {
   const coordinates = useLocationStore((s) => s.coordinates)
 
   const [query, setQuery] = useState('')
+  const [error, setError] = useState(false)
 
   const filteredCities = useMemo(
     () =>
@@ -36,11 +30,18 @@ export function CityPicker({ onSelect }: CityPickerProps) {
 
   const handleSelect = useCallback(
     (city: CityInfo) => {
-      useLocationStore
-        .getState()
-        .setLocation({ latitude: city.latitude, longitude: city.longitude }, city.name, 'manual')
-      AccessibilityInfo.announceForAccessibility(t('settings.citySelected', { city: city.name }))
-      onSelect?.()
+      try {
+        useLocationStore
+          .getState()
+          .setLocation({ latitude: city.latitude, longitude: city.longitude }, city.name, 'manual')
+        setError(false)
+        AccessibilityInfo.announceForAccessibility(t('settings.citySelected', { city: city.name }))
+        onSelect?.()
+      } catch (e) {
+        captureError(e, { component: 'CityPicker', operation: 'handleSelect' })
+        setError(true)
+        AccessibilityInfo.announceForAccessibility(t('settings.citySelectionFailed'))
+      }
     },
     [t, onSelect],
   )
@@ -49,19 +50,17 @@ export function CityPicker({ onSelect }: CityPickerProps) {
     () =>
       StyleSheet.create({
         container: {
+          flex: 1,
           gap: tokens.spacing.xs,
         },
         searchInput: {
-          backgroundColor: tokens.colors.surface,
+          backgroundColor: tokens.colors.surfaceElevated,
           borderRadius: tokens.radii.md,
           padding: tokens.spacing.md,
           color: tokens.colors.textPrimary,
           fontSize: tokens.typography.body.size,
-          textAlign: I18nManager.isRTL ? 'right' : 'left',
-          writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr',
-        },
-        listContainer: {
-          maxHeight: 350,
+          textAlign: 'auto',
+          writingDirection: 'ltr',
         },
         row: {
           backgroundColor: tokens.colors.surface,
@@ -101,6 +100,9 @@ export function CityPicker({ onSelect }: CityPickerProps) {
         emptyContainer: {
           padding: tokens.spacing.lg,
           alignItems: 'center',
+        },
+        errorText: {
+          paddingHorizontal: tokens.spacing.xs,
         },
       }),
     [tokens],
@@ -159,7 +161,7 @@ export function CityPicker({ onSelect }: CityPickerProps) {
 
   return (
     <View style={styles.container}>
-      <TextInput
+      <BottomSheetTextInput
         style={styles.searchInput}
         placeholder={t('settings.searchCities')}
         placeholderTextColor={tokens.colors.textTertiary}
@@ -169,14 +171,19 @@ export function CityPicker({ onSelect }: CityPickerProps) {
         autoCapitalize="words"
         autoCorrect={false}
       />
-      <View style={styles.listContainer}>
-        <FlashList
-          data={filteredCities}
-          keyExtractor={(item) => item.key}
-          renderItem={renderItem}
-          ListEmptyComponent={listEmptyComponent}
-        />
-      </View>
+      {error && (
+        <View style={styles.errorText}>
+          <AppText variant="caption" color="error">
+            {t('settings.citySelectionFailed')}
+          </AppText>
+        </View>
+      )}
+      <BottomSheetFlatList
+        data={filteredCities}
+        keyExtractor={(item: CityInfo) => item.key}
+        renderItem={renderItem}
+        ListEmptyComponent={listEmptyComponent}
+      />
     </View>
   )
 }

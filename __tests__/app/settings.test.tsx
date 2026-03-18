@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native'
-import { I18nManager, Linking, Platform } from 'react-native'
+import { Linking, Platform } from 'react-native'
 
 import SettingsScreen from '@/app/(tabs)/settings'
 
@@ -41,6 +41,7 @@ jest.mock('@/hooks/useTheme', () => ({
         body: { size: 16, weight: '400', lineHeight: 1.5 },
         bodySmall: { size: 14, weight: '400', lineHeight: 1.5 },
         caption: { size: 12, weight: '400', lineHeight: 1.4 },
+        label: { size: 14, weight: '600', lineHeight: 1.4 },
       },
       radii: { sm: 8, md: 12, lg: 16, full: 9999 },
     },
@@ -73,13 +74,17 @@ jest.mock('react-i18next', () => ({
         'settings.languageEn': 'English',
         'settings.languageAr': 'العربية',
         'settings.arabicNumerals': 'Arabic-Indic Numerals',
-        'common.restartRequired': 'App restart required to apply changes',
         'settings.about': 'About',
         'settings.version': 'Version',
         'settings.openSource': 'Open Source (GPL-3.0)',
         'settings.privacy': 'Zero data collected',
         'settings.athanMakkah': 'Makkah',
         'settings.fajrMakkah': 'Makkah (Fajr)',
+        'settings.fajrSoundLabel': 'Fajr Sound',
+        'settings.dhuhrSoundLabel': 'Dhuhr Sound',
+        'settings.asrSoundLabel': 'Asr Sound',
+        'settings.maghribSoundLabel': 'Maghrib Sound',
+        'settings.ishaSoundLabel': 'Isha Sound',
         'prayer.fajr': 'Fajr',
         'prayer.dhuhr': 'Dhuhr',
         'prayer.asr': 'Asr',
@@ -87,6 +92,20 @@ jest.mock('react-i18next', () => ({
         'prayer.isha': 'Isha',
         'permission.enableNotifications': 'Enable Notifications',
         'settings.batteryGuide': 'Battery Optimization Guide',
+        'settings.prayerAdjustments': 'Prayer Time Adjustments',
+        'settings.adjustmentsNone': 'None',
+        'settings.adjustmentsCount': '{{count}} adjusted',
+        'settings.elevationRule': 'Elevation Rule',
+        'settings.elevationSeaLevel': 'Sea Level',
+        'settings.elevationAutomatic': 'Automatic',
+        'settings.reminder': 'Reminder',
+        'settings.reminderOffset': 'Reminder Time',
+      }
+      if (key === 'settings.reminderMinutesBefore') {
+        return '15 min before'
+      }
+      if (key === 'settings.adjustmentsCount') {
+        return translations[key] ?? key
       }
       return translations[key] ?? key
     },
@@ -162,8 +181,9 @@ jest.mock('@/components/settings/LanguagePicker', () => {
 jest.mock('@/components/settings/AthanSoundPicker', () => {
   const RN = jest.requireActual('react-native')
   return {
-    AthanSoundPicker: ({ onSelect }: { onSelect?: () => void }) => (
+    AthanSoundPicker: ({ prayer, onSelect }: { prayer?: string; onSelect?: () => void }) => (
       <RN.View testID="athan-sound-picker">
+        <RN.Text testID="sound-picker-prayer">{prayer}</RN.Text>
         <RN.Pressable testID="mock-athan-select" onPress={onSelect}>
           <RN.Text>MockAthanSoundPicker</RN.Text>
         </RN.Pressable>
@@ -178,6 +198,44 @@ jest.mock('@/components/settings/OEMBatteryGuide', () => {
     OEMBatteryGuide: () => (
       <RN.View testID="oem-battery-guide">
         <RN.Text>MockOEMBatteryGuide</RN.Text>
+      </RN.View>
+    ),
+  }
+})
+
+jest.mock('@/components/settings/PrayerAdjustmentsPicker', () => {
+  const RN = jest.requireActual('react-native')
+  return {
+    PrayerAdjustmentsPicker: () => (
+      <RN.View testID="prayer-adjustments-picker">
+        <RN.Text>MockPrayerAdjustmentsPicker</RN.Text>
+      </RN.View>
+    ),
+  }
+})
+
+jest.mock('@/components/settings/ElevationRulePicker', () => {
+  const RN = jest.requireActual('react-native')
+  return {
+    ElevationRulePicker: ({ onSelect }: { onSelect?: () => void }) => (
+      <RN.View testID="elevation-rule-picker">
+        <RN.Pressable testID="mock-elevation-select" onPress={onSelect}>
+          <RN.Text>MockElevationRulePicker</RN.Text>
+        </RN.Pressable>
+      </RN.View>
+    ),
+  }
+})
+
+jest.mock('@/components/settings/ReminderOffsetPicker', () => {
+  const RN = jest.requireActual('react-native')
+  return {
+    ReminderOffsetPicker: ({ prayer, onSelect }: { prayer?: string; onSelect?: () => void }) => (
+      <RN.View testID="reminder-offset-picker">
+        <RN.Text testID="reminder-picker-prayer">{prayer}</RN.Text>
+        <RN.Pressable testID="mock-reminder-offset-select" onPress={onSelect}>
+          <RN.Text>MockReminderOffsetPicker</RN.Text>
+        </RN.Pressable>
       </RN.View>
     ),
   }
@@ -199,7 +257,8 @@ jest.mock('expo-constants', () => ({
 // Mock settings store
 const mockSetNotifications = jest.fn()
 const mockSetArabicNumerals = jest.fn()
-const mockSettingsState = {
+const mockSetReminderEnabled = jest.fn()
+const mockSettingsState: Record<string, unknown> = {
   calculationMethod: 'NorthAmerica',
   madhab: 'shafi',
   language: 'en',
@@ -211,10 +270,32 @@ const mockSettingsState = {
     maghrib: true,
     isha: true,
   },
-  athanSound: 'makkah',
-  fajrSound: 'fajr-makkah',
+  prayerSounds: {
+    fajr: 'makkah',
+    dhuhr: 'makkah',
+    asr: 'makkah',
+    maghrib: 'makkah',
+    isha: 'makkah',
+  },
+  prayerAdjustments: {
+    fajr: 0,
+    sunrise: 0,
+    dhuhr: 0,
+    asr: 0,
+    maghrib: 0,
+    isha: 0,
+  },
+  reminders: {
+    fajr: { enabled: false, minutes: 15 },
+    dhuhr: { enabled: false, minutes: 15 },
+    asr: { enabled: false, minutes: 15 },
+    maghrib: { enabled: false, minutes: 15 },
+    isha: { enabled: false, minutes: 15 },
+  },
+  elevationRule: 'seaLevel',
   setNotifications: mockSetNotifications,
   setArabicNumerals: mockSetArabicNumerals,
+  setReminderEnabled: mockSetReminderEnabled,
 }
 
 jest.mock('@/stores/settings', () => {
@@ -267,10 +348,16 @@ describe('app/(tabs)/settings - SettingsScreen', () => {
     }
     mockSettingsState.language = 'en'
     mockSettingsState.arabicNumerals = false
+    mockSettingsState.reminders = {
+      fajr: { enabled: false, minutes: 15 },
+      dhuhr: { enabled: false, minutes: 15 },
+      asr: { enabled: false, minutes: 15 },
+      maghrib: { enabled: false, minutes: 15 },
+      isha: { enabled: false, minutes: 15 },
+    }
     mockPermissionGranted = true
     mockLocationState.source = 'gps'
     mockLocationState.cityName = 'Casablanca'
-    Object.defineProperty(I18nManager, 'isRTL', { value: false, configurable: true })
   })
 
   afterEach(() => {
@@ -298,12 +385,12 @@ describe('app/(tabs)/settings - SettingsScreen', () => {
     expect(screen.getByText("Shafi'i")).toBeTruthy()
   })
 
-  it('shows 5 prayer notification toggles', () => {
+  it('shows 5 prayer notification toggles plus 5 reminder toggles', () => {
     render(<SettingsScreen />)
 
     const switches = screen.getAllByRole('switch')
-    // 5 prayer toggles + 1 arabic numerals toggle = 6
-    expect(switches).toHaveLength(6)
+    // 5 prayer toggles + 5 reminder toggles + 1 arabic numerals toggle = 11
+    expect(switches).toHaveLength(11)
 
     expect(screen.getByText('Fajr')).toBeTruthy()
     expect(screen.getByText('Dhuhr')).toBeTruthy()
@@ -312,13 +399,14 @@ describe('app/(tabs)/settings - SettingsScreen', () => {
     expect(screen.getByText('Isha')).toBeTruthy()
   })
 
-  it('shows athan and fajr sound names', () => {
+  it('shows 5 per-prayer sound rows with current sound names', () => {
     render(<SettingsScreen />)
 
-    expect(screen.getByText('Athan Sound')).toBeTruthy()
-    expect(screen.getByText('Makkah')).toBeTruthy()
     expect(screen.getByText('Fajr Sound')).toBeTruthy()
-    expect(screen.getByText('Makkah (Fajr)')).toBeTruthy()
+    expect(screen.getByText('Dhuhr Sound')).toBeTruthy()
+    expect(screen.getByText('Asr Sound')).toBeTruthy()
+    expect(screen.getByText('Maghrib Sound')).toBeTruthy()
+    expect(screen.getByText('Isha Sound')).toBeTruthy()
   })
 
   it('shows location info with GPS source', () => {
@@ -399,9 +487,8 @@ describe('app/(tabs)/settings - SettingsScreen', () => {
   it('toggles arabic numerals and calls setArabicNumerals', () => {
     render(<SettingsScreen />)
 
-    const switches = screen.getAllByRole('switch')
-    // Last switch is arabic numerals (after 5 prayer toggles)
-    fireEvent.press(switches[5])
+    const arabicNumeralsToggle = screen.getByLabelText('Arabic-Indic Numerals')
+    fireEvent.press(arabicNumeralsToggle)
 
     expect(mockSetArabicNumerals).toHaveBeenCalledWith(true)
   })
@@ -424,89 +511,75 @@ describe('app/(tabs)/settings - SettingsScreen', () => {
     expect(screen.queryByTestId('language-picker')).toBeNull()
   })
 
-  it('pressing Calculation Method row toggles method picker visibility', () => {
+  it('pressing Calculation Method row opens method picker in bottom sheet', () => {
     render(<SettingsScreen />)
 
     // Initially hidden
     expect(screen.queryByTestId('calculation-method-picker')).toBeNull()
 
-    // Press to expand
+    // Press to open bottom sheet
     fireEvent.press(
       screen.getByLabelText('Calculation Method, Islamic Society of North America (ISNA)'),
     )
     expect(screen.getByTestId('calculation-method-picker')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(
-      screen.getByLabelText('Calculation Method, Islamic Society of North America (ISNA)'),
-    )
-    expect(screen.queryByTestId('calculation-method-picker')).toBeNull()
   })
 
-  it('pressing Madhab row toggles madhab picker visibility', () => {
+  it('pressing Madhab row opens madhab picker in bottom sheet', () => {
     render(<SettingsScreen />)
 
     // Initially hidden
     expect(screen.queryByTestId('madhab-picker')).toBeNull()
 
-    // Press to expand
+    // Press to open bottom sheet
     fireEvent.press(screen.getByLabelText("Madhab, Shafi'i"))
     expect(screen.getByTestId('madhab-picker')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(screen.getByLabelText("Madhab, Shafi'i"))
-    expect(screen.queryByTestId('madhab-picker')).toBeNull()
   })
 
-  it('selecting a method collapses the method picker', () => {
+  it('selecting a method dismisses the bottom sheet', () => {
     render(<SettingsScreen />)
 
-    // Expand picker
+    // Open picker
     fireEvent.press(
       screen.getByLabelText('Calculation Method, Islamic Society of North America (ISNA)'),
     )
     expect(screen.getByTestId('calculation-method-picker')).toBeTruthy()
 
-    // Select a method (triggers onSelect callback)
+    // Select a method (triggers onSelect → dismiss → onDismiss → activeSheet=null)
     fireEvent.press(screen.getByTestId('mock-method-select'))
     expect(screen.queryByTestId('calculation-method-picker')).toBeNull()
   })
 
-  it('selecting a madhab collapses the madhab picker', () => {
+  it('selecting a madhab dismisses the bottom sheet', () => {
     render(<SettingsScreen />)
 
-    // Expand picker
+    // Open picker
     fireEvent.press(screen.getByLabelText("Madhab, Shafi'i"))
     expect(screen.getByTestId('madhab-picker')).toBeTruthy()
 
-    // Select a madhab (triggers onSelect callback)
+    // Select a madhab (triggers onSelect → dismiss → onDismiss → activeSheet=null)
     fireEvent.press(screen.getByTestId('mock-madhab-select'))
     expect(screen.queryByTestId('madhab-picker')).toBeNull()
   })
 
-  it('pressing Select City row toggles city picker visibility', () => {
+  it('pressing Select City row opens city picker in bottom sheet', () => {
     render(<SettingsScreen />)
 
     // Initially hidden
     expect(screen.queryByTestId('city-picker')).toBeNull()
 
-    // Press to expand
+    // Press to open bottom sheet
     fireEvent.press(screen.getByLabelText('Select City'))
     expect(screen.getByTestId('city-picker')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(screen.getByLabelText('Select City'))
-    expect(screen.queryByTestId('city-picker')).toBeNull()
   })
 
-  it('selecting a city collapses the city picker', () => {
+  it('selecting a city dismisses the bottom sheet', () => {
     render(<SettingsScreen />)
 
-    // Expand picker
+    // Open picker
     fireEvent.press(screen.getByLabelText('Select City'))
     expect(screen.getByTestId('city-picker')).toBeTruthy()
 
-    // Select a city (triggers onSelect callback)
+    // Select a city (triggers onSelect → dismiss → onDismiss → activeSheet=null)
     fireEvent.press(screen.getByTestId('mock-city-select'))
     expect(screen.queryByTestId('city-picker')).toBeNull()
   })
@@ -520,125 +593,80 @@ describe('app/(tabs)/settings - SettingsScreen', () => {
     expect(mockRequestLocation).toHaveBeenCalledTimes(1)
   })
 
-  it('pressing Theme row toggles theme picker visibility', () => {
+  it('pressing Theme row opens theme picker in bottom sheet', () => {
     render(<SettingsScreen />)
 
     // Initially hidden
     expect(screen.queryByTestId('theme-picker')).toBeNull()
 
-    // Press to expand
+    // Press to open bottom sheet
     fireEvent.press(screen.getByLabelText('Theme, Dark'))
     expect(screen.getByTestId('theme-picker')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(screen.getByLabelText('Theme, Dark'))
-    expect(screen.queryByTestId('theme-picker')).toBeNull()
   })
 
-  it('selecting a theme collapses the theme picker', () => {
+  it('selecting a theme dismisses the bottom sheet', () => {
     render(<SettingsScreen />)
 
-    // Expand picker
+    // Open picker
     fireEvent.press(screen.getByLabelText('Theme, Dark'))
     expect(screen.getByTestId('theme-picker')).toBeTruthy()
 
-    // Select a theme (triggers onSelect callback)
+    // Select a theme (triggers onSelect → dismiss → onDismiss → activeSheet=null)
     fireEvent.press(screen.getByTestId('mock-theme-select'))
     expect(screen.queryByTestId('theme-picker')).toBeNull()
   })
 
-  it('pressing Language row toggles language picker visibility', () => {
+  it('pressing Language row opens language picker in bottom sheet', () => {
     render(<SettingsScreen />)
 
     // Initially hidden
     expect(screen.queryByTestId('language-picker')).toBeNull()
 
-    // Press to expand
+    // Press to open bottom sheet
     fireEvent.press(screen.getByLabelText('Language, English'))
     expect(screen.getByTestId('language-picker')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(screen.getByLabelText('Language, English'))
-    expect(screen.queryByTestId('language-picker')).toBeNull()
   })
 
-  it('selecting a language collapses the language picker', () => {
+  it('selecting a language dismisses the bottom sheet', () => {
     render(<SettingsScreen />)
 
-    // Expand picker
+    // Open picker
     fireEvent.press(screen.getByLabelText('Language, English'))
     expect(screen.getByTestId('language-picker')).toBeTruthy()
 
-    // Select a language (triggers onSelect callback)
+    // Select a language (triggers onSelect → dismiss → onDismiss → activeSheet=null)
     fireEvent.press(screen.getByTestId('mock-language-select'))
     expect(screen.queryByTestId('language-picker')).toBeNull()
   })
 
-  it('shows restart notice when language RTL direction mismatches current layout', () => {
-    mockSettingsState.language = 'ar'
-    Object.defineProperty(I18nManager, 'isRTL', { value: false, configurable: true })
-
-    render(<SettingsScreen />)
-
-    expect(screen.getByText('App restart required to apply changes')).toBeTruthy()
-  })
-
-  it('does NOT show restart notice when language matches RTL direction', () => {
-    mockSettingsState.language = 'en'
-    Object.defineProperty(I18nManager, 'isRTL', { value: false, configurable: true })
-
-    render(<SettingsScreen />)
-
-    expect(screen.queryByText('App restart required to apply changes')).toBeNull()
-  })
-
-  it('does NOT show restart notice when Arabic and RTL already active', () => {
-    mockSettingsState.language = 'ar'
-    Object.defineProperty(I18nManager, 'isRTL', { value: true, configurable: true })
-
-    render(<SettingsScreen />)
-
-    expect(screen.queryByText('App restart required to apply changes')).toBeNull()
-  })
-
-  it('pressing Athan Sound row toggles athan sound picker visibility', () => {
+  it('pressing a prayer sound row opens sound picker in bottom sheet', () => {
     render(<SettingsScreen />)
 
     // Initially hidden
     expect(screen.queryByTestId('athan-sound-picker')).toBeNull()
 
-    // Press to expand
-    fireEvent.press(screen.getByLabelText('Athan Sound, Makkah'))
+    // Press Fajr Sound row to open bottom sheet
+    fireEvent.press(screen.getByLabelText('Fajr Sound, Makkah'))
     expect(screen.getByTestId('athan-sound-picker')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(screen.getByLabelText('Athan Sound, Makkah'))
-    expect(screen.queryByTestId('athan-sound-picker')).toBeNull()
+    expect(screen.getByTestId('sound-picker-prayer').props.children).toBe('fajr')
   })
 
-  it('pressing Fajr Sound row toggles athan sound picker visibility', () => {
+  it('pressing Dhuhr sound row passes dhuhr prayer to picker', () => {
     render(<SettingsScreen />)
 
-    // Initially hidden
-    expect(screen.queryByTestId('athan-sound-picker')).toBeNull()
-
-    // Press to expand
-    fireEvent.press(screen.getByLabelText('Fajr Sound, Makkah (Fajr)'))
+    fireEvent.press(screen.getByLabelText('Dhuhr Sound, Makkah'))
     expect(screen.getByTestId('athan-sound-picker')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(screen.getByLabelText('Fajr Sound, Makkah (Fajr)'))
-    expect(screen.queryByTestId('athan-sound-picker')).toBeNull()
+    expect(screen.getByTestId('sound-picker-prayer').props.children).toBe('dhuhr')
   })
 
-  it('selecting a sound collapses the athan sound picker', () => {
+  it('selecting a sound dismisses the bottom sheet', () => {
     render(<SettingsScreen />)
 
-    // Expand picker
-    fireEvent.press(screen.getByLabelText('Athan Sound, Makkah'))
+    // Open picker
+    fireEvent.press(screen.getByLabelText('Fajr Sound, Makkah'))
     expect(screen.getByTestId('athan-sound-picker')).toBeTruthy()
 
-    // Select a sound (triggers onSelect callback)
+    // Select a sound (triggers onSelect → dismiss → onDismiss → activeSheet=null)
     fireEvent.press(screen.getByTestId('mock-athan-select'))
     expect(screen.queryByTestId('athan-sound-picker')).toBeNull()
   })
@@ -682,25 +710,89 @@ describe('app/(tabs)/settings - SettingsScreen', () => {
     expect(screen.getByLabelText('Battery Optimization Guide')).toBeTruthy()
   })
 
-  it('pressing battery guide row toggles OEMBatteryGuide visibility on Android', () => {
+  it('pressing battery guide row opens OEMBatteryGuide in bottom sheet on Android', () => {
     Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true })
     render(<SettingsScreen />)
 
     // Initially hidden
     expect(screen.queryByTestId('oem-battery-guide')).toBeNull()
 
-    // Press battery guide row to expand
+    // Press battery guide row to open bottom sheet
     fireEvent.press(screen.getByLabelText('Battery Optimization Guide'))
     expect(screen.getByTestId('oem-battery-guide')).toBeTruthy()
-
-    // Press again to collapse
-    fireEvent.press(screen.getByLabelText('Battery Optimization Guide'))
-    expect(screen.queryByTestId('oem-battery-guide')).toBeNull()
   })
 
   it('does not show pickers initially including athan sound picker', () => {
     render(<SettingsScreen />)
 
     expect(screen.queryByTestId('athan-sound-picker')).toBeNull()
+  })
+
+  it('shows Prayer Time Adjustments row with "None" when all zero', () => {
+    render(<SettingsScreen />)
+
+    expect(screen.getByText('Prayer Time Adjustments')).toBeTruthy()
+    expect(screen.getByLabelText('Prayer Time Adjustments, None')).toBeTruthy()
+  })
+
+  it('shows Elevation Rule row with "Sea Level" as default', () => {
+    render(<SettingsScreen />)
+
+    expect(screen.getByText('Elevation Rule')).toBeTruthy()
+    expect(screen.getByLabelText('Elevation Rule, Sea Level')).toBeTruthy()
+  })
+
+  it('pressing Prayer Time Adjustments row opens adjustments picker', () => {
+    render(<SettingsScreen />)
+
+    expect(screen.queryByTestId('prayer-adjustments-picker')).toBeNull()
+
+    fireEvent.press(screen.getByLabelText('Prayer Time Adjustments, None'))
+    expect(screen.getByTestId('prayer-adjustments-picker')).toBeTruthy()
+  })
+
+  it('pressing Elevation Rule row opens elevation picker', () => {
+    render(<SettingsScreen />)
+
+    expect(screen.queryByTestId('elevation-rule-picker')).toBeNull()
+
+    fireEvent.press(screen.getByLabelText('Elevation Rule, Sea Level'))
+    expect(screen.getByTestId('elevation-rule-picker')).toBeTruthy()
+  })
+
+  it('shows reminder toggle rows when prayer is enabled', () => {
+    render(<SettingsScreen />)
+
+    // All 5 prayers are enabled, so 5 reminder toggles should be visible
+    const reminderLabels = screen.getAllByLabelText(/^Reminder/)
+    expect(reminderLabels.length).toBe(5)
+  })
+
+  it('hides reminder rows when prayer notification is disabled', () => {
+    mockSettingsState.notifications = {
+      fajr: false,
+      dhuhr: false,
+      asr: false,
+      maghrib: false,
+      isha: false,
+    }
+    render(<SettingsScreen />)
+
+    // No reminder toggles should be visible when all prayers disabled
+    expect(screen.queryByText('Reminder')).toBeNull()
+  })
+
+  it('shows reminder offset row when reminder is enabled', () => {
+    mockSettingsState.reminders = {
+      fajr: { enabled: true, minutes: 15 },
+      dhuhr: { enabled: false, minutes: 15 },
+      asr: { enabled: false, minutes: 15 },
+      maghrib: { enabled: false, minutes: 15 },
+      isha: { enabled: false, minutes: 15 },
+    }
+    render(<SettingsScreen />)
+
+    expect(screen.getByText('Reminder Time')).toBeTruthy()
+    expect(screen.getByText('15 min before')).toBeTruthy()
   })
 })

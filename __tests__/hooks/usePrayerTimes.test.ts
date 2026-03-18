@@ -33,6 +33,7 @@ jest.mock('@/stores/settings', () => ({
     selector({
       calculationMethod: 'UmmAlQura',
       madhab: 'shafi',
+      prayerAdjustments: { fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
     }),
   ),
 }))
@@ -129,6 +130,7 @@ describe('hooks/usePrayerTimes', () => {
         selector({
           calculationMethod: 'Egyptian',
           madhab: 'hanafi',
+          prayerAdjustments: { fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
         }),
     )
     mockedCalculate.mockReturnValue(altPrayerTimes)
@@ -142,11 +144,12 @@ describe('hooks/usePrayerTimes', () => {
         selector({
           calculationMethod: 'UmmAlQura',
           madhab: 'shafi',
+          prayerAdjustments: { fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
         }),
     )
   })
 
-  it('calls calculatePrayerTimes with correct parameters', () => {
+  it('calls calculatePrayerTimes with correct parameters including prayerAdjustments', () => {
     renderHook(() => usePrayerTimes())
 
     expect(mockedCalculate).toHaveBeenCalledWith(
@@ -154,6 +157,7 @@ describe('hooks/usePrayerTimes', () => {
       expect.any(Date),
       'UmmAlQura',
       'shafi',
+      expect.objectContaining({ fajr: 0, dhuhr: 0 }),
     )
   })
 
@@ -166,6 +170,7 @@ describe('hooks/usePrayerTimes', () => {
       expect.any(Date),
       'UmmAlQura',
       'shafi',
+      expect.objectContaining({ fajr: 0, dhuhr: 0 }),
     )
   })
 })
@@ -188,7 +193,7 @@ describe('hooks/useMultiDayPrayerTimes', () => {
     expect(result.current).toHaveLength(13)
   })
 
-  it('calls buildDayPrayerTimes with correct parameters', () => {
+  it('calls buildDayPrayerTimes with correct parameters including prayerAdjustments', () => {
     renderHook(() => useMultiDayPrayerTimes(13))
 
     expect(mockedBuildDays).toHaveBeenCalledWith(
@@ -196,6 +201,7 @@ describe('hooks/useMultiDayPrayerTimes', () => {
       'UmmAlQura',
       'shafi',
       13,
+      expect.objectContaining({ fajr: 0, dhuhr: 0 }),
     )
   })
 

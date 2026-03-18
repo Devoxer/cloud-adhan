@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo } from 'react'
-import { I18nManager, Platform, Pressable, StyleSheet, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, View } from 'react-native'
 
 import { AppText } from '@/components/ui/AppText'
 import { Toggle } from '@/components/ui/Toggle'
@@ -98,11 +98,7 @@ export function SettingsRow(props: SettingsRowProps) {
           </AppText>
         )}
         {variant === 'navigation' && (
-          <Ionicons
-            name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
-            size={20}
-            color={tokens.colors.textTertiary}
-          />
+          <Ionicons name="chevron-forward" size={20} color={tokens.colors.textTertiary} />
         )}
       </View>
     </Pressable>

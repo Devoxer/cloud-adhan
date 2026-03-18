@@ -35,6 +35,7 @@ jest.mock('@/stores/settings', () => ({
     selector({
       calculationMethod: 'UmmAlQura',
       madhab: 'shafi',
+      prayerAdjustments: { fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
     }),
   ),
 }))

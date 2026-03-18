@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native'
-import { I18nManager, Platform } from 'react-native'
+import { Platform } from 'react-native'
 
 import SettingsScreen from '@/app/(tabs)/settings'
 
@@ -60,6 +60,12 @@ jest.mock('react-i18next', () => ({
         'settings.notifications': 'Notifications',
         'settings.athanSound': 'Athan Sound',
         'settings.fajrSound': 'Fajr Sound',
+        'settings.fajrSoundLabel': 'Fajr Sound',
+        'settings.dhuhrSoundLabel': 'Dhuhr Sound',
+        'settings.asrSoundLabel': 'Asr Sound',
+        'settings.maghribSoundLabel': 'Maghrib Sound',
+        'settings.ishaSoundLabel': 'Isha Sound',
+        'settings.athanMakkah': 'Makkah',
         'settings.location': 'Location',
         'settings.useGps': 'Use GPS',
         'settings.manualCity': 'Select City',
@@ -69,12 +75,10 @@ jest.mock('react-i18next', () => ({
         'settings.language': 'Language',
         'settings.languageEn': 'English',
         'settings.arabicNumerals': 'Arabic-Indic Numerals',
-        'common.restartRequired': 'App restart required to apply changes',
         'settings.about': 'About',
         'settings.version': 'Version',
         'settings.openSource': 'Open Source (GPL-3.0)',
         'settings.privacy': 'Zero data collected',
-        'settings.athanMakkah': 'Makkah',
         'settings.fajrMakkah': 'Makkah (Fajr)',
         'prayer.fajr': 'Fajr',
         'prayer.dhuhr': 'Dhuhr',
@@ -83,6 +87,11 @@ jest.mock('react-i18next', () => ({
         'prayer.isha': 'Isha',
         'permission.enableNotifications': 'Enable Notifications',
         'settings.batteryGuide': 'Battery Optimization Guide',
+        'settings.prayerAdjustments': 'Prayer Time Adjustments',
+        'settings.adjustmentsNone': 'None',
+        'settings.elevationRule': 'Elevation Rule',
+        'settings.elevationSeaLevel': 'Sea Level',
+        'settings.elevationAutomatic': 'Automatic',
       }
       return translations[key] ?? key
     },
@@ -139,6 +148,27 @@ jest.mock('@/components/settings/OEMBatteryGuide', () => {
   }
 })
 
+jest.mock('@/components/settings/PrayerAdjustmentsPicker', () => {
+  const RN = jest.requireActual('react-native')
+  return {
+    PrayerAdjustmentsPicker: () => <RN.Text>MockPrayerAdjustmentsPicker</RN.Text>,
+  }
+})
+
+jest.mock('@/components/settings/ElevationRulePicker', () => {
+  const RN = jest.requireActual('react-native')
+  return {
+    ElevationRulePicker: () => <RN.Text>MockElevationRulePicker</RN.Text>,
+  }
+})
+
+jest.mock('@/components/settings/ReminderOffsetPicker', () => {
+  const RN = jest.requireActual('react-native')
+  return {
+    ReminderOffsetPicker: () => <RN.Text>MockReminderOffsetPicker</RN.Text>,
+  }
+})
+
 // Mock expo-haptics
 jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(),
@@ -153,7 +183,7 @@ jest.mock('expo-constants', () => ({
 }))
 
 // Mock settings store
-const mockSettingsState = {
+const mockSettingsState: Record<string, unknown> = {
   calculationMethod: 'NorthAmerica',
   madhab: 'shafi',
   language: 'en',
@@ -165,10 +195,32 @@ const mockSettingsState = {
     maghrib: true,
     isha: true,
   },
-  athanSound: 'makkah',
-  fajrSound: 'fajr-makkah',
+  prayerSounds: {
+    fajr: 'makkah',
+    dhuhr: 'makkah',
+    asr: 'makkah',
+    maghrib: 'makkah',
+    isha: 'makkah',
+  },
+  prayerAdjustments: {
+    fajr: 0,
+    sunrise: 0,
+    dhuhr: 0,
+    asr: 0,
+    maghrib: 0,
+    isha: 0,
+  },
+  reminders: {
+    fajr: { enabled: false, minutes: 15 },
+    dhuhr: { enabled: false, minutes: 15 },
+    asr: { enabled: false, minutes: 15 },
+    maghrib: { enabled: false, minutes: 15 },
+    isha: { enabled: false, minutes: 15 },
+  },
+  elevationRule: 'seaLevel',
   setNotifications: jest.fn(),
   setArabicNumerals: jest.fn(),
+  setReminderEnabled: jest.fn(),
 }
 
 jest.mock('@/stores/settings', () => {
@@ -208,7 +260,6 @@ const originalPlatformOS = Platform.OS
 describe('Settings screen — web platform', () => {
   beforeEach(() => {
     Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true })
-    Object.defineProperty(I18nManager, 'isRTL', { value: false, configurable: true })
   })
 
   afterEach(() => {
@@ -251,7 +302,6 @@ describe('Settings screen — web platform', () => {
 describe('Settings screen — native platform shows notifications', () => {
   beforeEach(() => {
     Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true })
-    Object.defineProperty(I18nManager, 'isRTL', { value: false, configurable: true })
   })
 
   afterEach(() => {
@@ -263,6 +313,7 @@ describe('Settings screen — native platform shows notifications', () => {
 
     expect(screen.getByText('Notifications')).toBeTruthy()
     expect(screen.getByText('Fajr')).toBeTruthy()
-    expect(screen.getByText('Athan Sound')).toBeTruthy()
+    expect(screen.getByText('Fajr Sound')).toBeTruthy()
+    expect(screen.getByText('Dhuhr Sound')).toBeTruthy()
   })
 })

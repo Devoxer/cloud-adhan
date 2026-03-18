@@ -1,9 +1,12 @@
+import type { PrayerSounds } from '@/constants/sounds'
 import type {
   CalculationMethod,
   Coordinates,
   Madhab,
   NotificationSettings,
+  PrayerAdjustments,
   PrayerTimes,
+  ReminderSettings,
 } from '@/types/prayer'
 
 export type DayPrayerTimes = {
@@ -13,8 +16,8 @@ export type DayPrayerTimes = {
 
 export type NotificationConfig = {
   settings: NotificationSettings
-  athanSound: string
-  fajrSound: string
+  prayerSounds: PrayerSounds
+  reminders: ReminderSettings
 }
 
 export type RescheduleParams = {
@@ -22,8 +25,9 @@ export type RescheduleParams = {
   calculationMethod: CalculationMethod
   madhab: Madhab
   notifications: NotificationSettings
-  athanSound: string
-  fajrSound: string
+  prayerSounds: PrayerSounds
+  prayerAdjustments: PrayerAdjustments
+  reminders: ReminderSettings
 }
 
 export interface NotificationService {

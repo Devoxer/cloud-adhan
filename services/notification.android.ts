@@ -50,12 +50,24 @@ async function schedulePrayerNotifications(
       const time = day.times[prayer]
       if (time.getTime() <= now) continue
 
-      const soundId = prayer === Prayer.Fajr ? config.fajrSound : config.athanSound
+      const soundId = config.prayerSounds[prayer]
       const sound = getSoundById(soundId)
       const soundName = sound?.androidRawName ?? 'makkah'
+      // Silent sound (empty androidRawName) → skip alarm; Android foreground service
+      // requires a valid raw resource to show notification
+      if (!soundName) continue
       const prayerId = `${prayer}-${dayjs(day.date).format('YYYY-MM-DD')}`
 
       await AlarmManagerModule.scheduleAlarm(prayerId, time.getTime(), soundName)
+
+      if (config.reminders[prayer].enabled) {
+        const reminderMinutes = config.reminders[prayer].minutes
+        const reminderTime = new Date(time.getTime() - reminderMinutes * 60000)
+        if (reminderTime.getTime() > now) {
+          const reminderId = `reminder-${prayer}-${dayjs(day.date).format('YYYY-MM-DD')}`
+          await AlarmManagerModule.scheduleAlarm(reminderId, reminderTime.getTime(), 'makkah')
+        }
+      }
     }
   }
 }
@@ -65,14 +77,28 @@ async function cancelAllNotifications(): Promise<void> {
 }
 
 async function reschedule(params: RescheduleParams): Promise<void> {
-  const { coordinates, calculationMethod, madhab, notifications, athanSound, fajrSound } = params
+  const {
+    coordinates,
+    calculationMethod,
+    madhab,
+    notifications,
+    prayerSounds,
+    prayerAdjustments,
+    reminders,
+  } = params
 
-  const days = buildDayPrayerTimes(coordinates, calculationMethod, madhab, SCHEDULE_DAYS)
+  const days = buildDayPrayerTimes(
+    coordinates,
+    calculationMethod,
+    madhab,
+    SCHEDULE_DAYS,
+    prayerAdjustments,
+  )
 
   const config: NotificationConfig = {
     settings: notifications,
-    athanSound,
-    fajrSound,
+    prayerSounds,
+    reminders,
   }
 
   await schedulePrayerNotifications(days, config)

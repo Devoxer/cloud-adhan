@@ -200,23 +200,6 @@ describe('components/settings/CityPicker', () => {
     expect(screen.getByText('Turkey')).toBeTruthy()
   })
 
-  it('applies RTL text alignment when I18nManager.isRTL is true', () => {
-    const { I18nManager } = require('react-native')
-    const originalIsRTL = I18nManager.isRTL
-    I18nManager.isRTL = true
-
-    render(<CityPicker />)
-
-    const searchInput = screen.getByPlaceholderText('Search cities...')
-    const flattenedStyle = Array.isArray(searchInput.props.style)
-      ? Object.assign({}, ...searchInput.props.style)
-      : searchInput.props.style
-    expect(flattenedStyle.textAlign).toBe('right')
-    expect(flattenedStyle.writingDirection).toBe('rtl')
-
-    I18nManager.isRTL = originalIsRTL
-  })
-
   it('filters with partial match (shows "ca" matches both Cairo and Casablanca)', () => {
     render(<CityPicker />)
 
@@ -225,5 +208,19 @@ describe('components/settings/CityPicker', () => {
     expect(screen.getByText('Cairo')).toBeTruthy()
     expect(screen.getByText('Casablanca')).toBeTruthy()
     expect(screen.queryByText('Dubai')).toBeNull()
+  })
+
+  it('shows visual error and announces via accessibility if setLocation throws', () => {
+    mockSetLocation.mockImplementationOnce(() => {
+      throw new Error('MMKV write failed')
+    })
+    const mockOnSelect = jest.fn()
+    render(<CityPicker onSelect={mockOnSelect} />)
+
+    fireEvent.press(screen.getByLabelText('Cairo, Egypt'))
+
+    expect(announceForAccessibilitySpy).toHaveBeenCalledWith('settings.citySelectionFailed')
+    expect(mockOnSelect).not.toHaveBeenCalled()
+    expect(screen.getByText('settings.citySelectionFailed')).toBeTruthy()
   })
 })

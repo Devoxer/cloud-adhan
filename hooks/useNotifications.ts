@@ -12,18 +12,27 @@ function buildRescheduleParams(): RescheduleParams | null {
   const { coordinates } = useLocationStore.getState()
   if (!coordinates) return null
 
-  const { calculationMethod, madhab, notifications, athanSound, fajrSound } =
+  const { calculationMethod, madhab, notifications, prayerSounds, prayerAdjustments, reminders } =
     useSettingsStore.getState()
 
-  return { coordinates, calculationMethod, madhab, notifications, athanSound, fajrSound }
+  return {
+    coordinates,
+    calculationMethod,
+    madhab,
+    notifications,
+    prayerSounds,
+    prayerAdjustments,
+    reminders,
+  }
 }
 
 export function useNotifications() {
   const calculationMethod = useSettingsStore((s) => s.calculationMethod)
   const madhab = useSettingsStore((s) => s.madhab)
   const notifications = useSettingsStore((s) => s.notifications)
-  const athanSound = useSettingsStore((s) => s.athanSound)
-  const fajrSound = useSettingsStore((s) => s.fajrSound)
+  const prayerSounds = useSettingsStore((s) => s.prayerSounds)
+  const prayerAdjustments = useSettingsStore((s) => s.prayerAdjustments)
+  const reminders = useSettingsStore((s) => s.reminders)
   const coordinates = useLocationStore((s) => s.coordinates)
 
   const [permissionGranted, setPermissionGranted] = useState(false)
@@ -38,11 +47,20 @@ export function useNotifications() {
         calculationMethod,
         madhab,
         notifications,
-        athanSound,
-        fajrSound,
+        prayerSounds,
+        prayerAdjustments,
+        reminders,
         coordinates,
       }),
-    [calculationMethod, madhab, notifications, athanSound, fajrSound, coordinates],
+    [
+      calculationMethod,
+      madhab,
+      notifications,
+      prayerSounds,
+      prayerAdjustments,
+      reminders,
+      coordinates,
+    ],
   )
 
   const reschedule = useCallback(async () => {

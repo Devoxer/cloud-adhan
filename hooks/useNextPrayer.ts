@@ -10,6 +10,7 @@ export function useNextPrayer(): PrayerTimeInfo | null {
   const coordinates = useLocationStore((s) => s.coordinates)
   const method = useSettingsStore((s) => s.calculationMethod)
   const madhab = useSettingsStore((s) => s.madhab)
+  const prayerAdjustments = useSettingsStore((s) => s.prayerAdjustments)
   const todayTimes = usePrayerTimes()
 
   const computeNext = useCallback((): PrayerTimeInfo | null => {
@@ -23,9 +24,15 @@ export function useNextPrayer(): PrayerTimeInfo | null {
     // After Isha: calculate tomorrow's Fajr
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowTimes = calculatePrayerTimes(coordinates, tomorrow, method, madhab)
+    const tomorrowTimes = calculatePrayerTimes(
+      coordinates,
+      tomorrow,
+      method,
+      madhab,
+      prayerAdjustments,
+    )
     return getNextPrayer(tomorrowTimes, now)
-  }, [todayTimes, coordinates, method, madhab])
+  }, [todayTimes, coordinates, method, madhab, prayerAdjustments])
 
   const [nextPrayer, setNextPrayer] = useState<PrayerTimeInfo | null>(computeNext)
 

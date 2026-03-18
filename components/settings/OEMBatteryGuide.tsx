@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native'
 
 import { AppText } from '@/components/ui/AppText'
-import { Surface } from '@/components/ui/Surface'
 import { useTheme } from '@/hooks/useTheme'
 import { getDeviceManufacturer, isAndroid } from '@/utils/platform'
 
@@ -129,7 +128,7 @@ export function OEMBatteryGuide() {
             : t('settings.batteryGuideGeneric')}
         </AppText>
       </View>
-      <Surface>
+      <View>
         {guide.steps.map((step, index) => (
           <View key={step} accessible accessibilityRole="text" style={styles.stepRow}>
             <AppText variant="body" style={styles.stepNumber}>
@@ -154,7 +153,7 @@ export function OEMBatteryGuide() {
             {t('settings.learnMore')}
           </AppText>
         </Pressable>
-      </Surface>
+      </View>
     </View>
   )
 }

@@ -131,4 +131,17 @@ describe('components/prayer/PrayerTimelineItem', () => {
 
     expect(screen.getByLabelText('Maghrib at 3:45 PM, upcoming')).toBeTruthy()
   })
+
+  it('uses marginStart (not marginLeft) for RTL-aware spacing on prayer name', () => {
+    render(
+      <PrayerTimelineItem prayer={Prayer.Dhuhr} time={testTime} state="current" arabicNumerals={false} />,
+    )
+
+    const prayerNameElement = screen.getByText('Dhuhr')
+    const flattenedStyle = Array.isArray(prayerNameElement.props.style)
+      ? Object.assign({}, ...prayerNameElement.props.style.flat())
+      : prayerNameElement.props.style
+    expect(flattenedStyle.marginStart).toBe(8)
+    expect(flattenedStyle.marginLeft).toBeUndefined()
+  })
 })

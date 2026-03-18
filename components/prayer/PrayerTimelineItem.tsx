@@ -83,7 +83,7 @@ export function PrayerTimelineItem({
         <AppText
           variant={textVariant}
           color={textColor}
-          style={[styles.prayerName, { marginLeft: tokens.spacing.sm }]}
+          style={[styles.prayerName, { marginStart: tokens.spacing.sm }]}
         >
           {prayerName}
         </AppText>

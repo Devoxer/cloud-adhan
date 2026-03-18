@@ -34,7 +34,6 @@ jest.mock('react-i18next', () => ({
         'settings.language': 'Language',
         'settings.languageEn': 'English',
         'settings.languageAr': 'العربية',
-        'common.restartRequired': 'App restart required to apply changes',
       }
       return translations[key] ?? key
     },

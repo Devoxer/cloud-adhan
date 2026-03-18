@@ -21,7 +21,6 @@ export type CalculationMethod =
   | 'Tehran'
   | 'Turkey'
   | 'Morocco'
-  | 'Other'
 
 export type Madhab = 'hanafi' | 'shafi'
 
@@ -48,4 +47,28 @@ export type Coordinates = {
 export type PrayerTimeInfo = {
   prayer: Prayer
   time: Date
+}
+
+export type PrayerAdjustments = Record<Prayer, number>
+
+export const DEFAULT_PRAYER_ADJUSTMENTS: PrayerAdjustments = {
+  fajr: 0,
+  sunrise: 0,
+  dhuhr: 0,
+  asr: 0,
+  maghrib: 0,
+  isha: 0,
+}
+
+export type ReminderConfig = { enabled: boolean; minutes: number }
+export type ReminderSettings = Record<NotifiablePrayer, ReminderConfig>
+
+export const REMINDER_OFFSET_OPTIONS = [5, 10, 15, 20, 30] as const
+
+export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
+  fajr: { enabled: false, minutes: 15 },
+  dhuhr: { enabled: false, minutes: 15 },
+  asr: { enabled: false, minutes: 15 },
+  maghrib: { enabled: false, minutes: 15 },
+  isha: { enabled: false, minutes: 15 },
 }
